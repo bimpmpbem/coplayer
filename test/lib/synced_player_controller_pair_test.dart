@@ -45,7 +45,7 @@ void main() {
     await pair.play();
     expect(pair.mainController.value,
         const GenericPlayerValue(duration: Duration(minutes: 1)));
-    expect(pair.secondaryController.value.isPlaying,
+    expect(pair.secondaryController.value,
         const GenericPlayerValue(duration: Duration(minutes: 2)));
   });
 
