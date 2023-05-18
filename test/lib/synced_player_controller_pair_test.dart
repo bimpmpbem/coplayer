@@ -124,15 +124,111 @@ void main() {
         expect(pair.secondaryController.value, uninitialized9Minutes);
       });
 
-      test('should not change playing status of pair', () {});
-      test('when one reached end & stopped & target is valid should play',
-          () {});
-      test('when target before main should only play secondary', () {});
+      group('playing', () {
+        test('offset should be calculated relative to mainController',
+            () async {
+          final pair = SyncedPlayerControllerPair(
+            mainController: TestController(initialValue: uninitialized2Minutes),
+            secondaryController:
+                TestController(initialValue: uninitialized9Minutes),
+            offset: const Duration(minutes: 3),
+          );
+
+          await pair.initialize();
+          await pair.play();
+
+          await pair.setPosition(const Duration(minutes: 1));
+
+          expect(pair.value.position, const Duration(minutes: 1));
+          expect(
+              pair.mainController.value.position, const Duration(minutes: 1));
+          expect(pair.secondaryController.value.position,
+              const Duration(minutes: 4));
+        });
+
+        test('when target valid for both should keep playing', () async {
+          final pair = SyncedPlayerControllerPair(
+            mainController: TestController(initialValue: uninitialized9Minutes),
+            secondaryController:
+                TestController(initialValue: uninitialized9Minutes),
+            offset: const Duration(minutes: 3),
+          );
+
+          await pair.initialize();
+          await pair.play();
+
+          await pair.setPosition(const Duration(minutes: 1));
+
+          expect(pair.value.isPlaying, true);
+        });
+
+        test('when target before main should clamp & pause main', () async {
+          final pair = SyncedPlayerControllerPair(
+            mainController: TestController(initialValue: uninitialized9Minutes),
+            secondaryController:
+                TestController(initialValue: uninitialized9Minutes),
+            offset: const Duration(minutes: -3),
+          );
+
+          await pair.initialize();
+          await pair.play();
+
+          await pair.setPosition(const Duration(minutes: -1));
+
+          expect(pair.value.isPlaying, true);
+          expect(pair.mainController.value.isPlaying, false);
+          expect(pair.secondaryController.value.isPlaying, true);
+          expect(pair.mainController.value.position, Duration.zero);
+          expect(pair.secondaryController.value.position,
+              const Duration(minutes: 2));
+        });
+        test('when target before secondary should clamp & pause secondary',
+            () async {
+          final pair = SyncedPlayerControllerPair(
+            mainController: TestController(initialValue: uninitialized2Minutes),
+            secondaryController:
+                TestController(initialValue: uninitialized9Minutes),
+            offset: const Duration(minutes: 3),
+          );
+
+          await pair.initialize();
+          await pair.play();
+
+          await pair.setPosition(const Duration(minutes: 1));
+
+          expect(pair.value.isPlaying, true);
+          expect(pair.mainController.value.isPlaying, true);
+          expect(pair.secondaryController.value.isPlaying, false);
+          expect(
+              pair.mainController.value.position, const Duration(minutes: 2));
+          expect(pair.secondaryController.value.position, Duration.zero);
+        });
+      });
+      group('paused', () {
+        test('when target valid for both should keep playing', () async {
+          final pair = SyncedPlayerControllerPair(
+            mainController: TestController(initialValue: uninitialized2Minutes),
+            secondaryController:
+                TestController(initialValue: uninitialized9Minutes),
+          );
+
+          await pair.initialize();
+
+          await pair.setPosition(const Duration(minutes: 1));
+
+          expect(pair.value.isPlaying, false);
+        });
+      });
+
       test('when target before secondary should only play main', () {});
       test('when target before both should clamp to earliest', () {});
       test('when target after main should only play secondary', () {});
       test('when target after secondary should only play main', () {});
       test('when target after both should clamp to latest', () {});
+      test(
+          'when playing and a previously invalid target becomes valid'
+          ' should resume play',
+          () {});
 
       test('offset should be calculated relative to mainController', () {});
     });
