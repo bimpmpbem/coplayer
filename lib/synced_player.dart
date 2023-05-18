@@ -204,45 +204,43 @@ abstract class GenericPlayerController
   Future<void> setPlaybackSpeed(double speed);
 }
 
-/// A group of [GenericPlayerController]s,
+/// A pair of [GenericPlayerController]s,
 /// which are kept in sync with each other.
 ///
 /// All the controllers' play/pause/speed/position states will stay in sync,
 /// while applying their respective offsets.
 ///
-/// The group will end playback once the last controller has ended playback.
+/// The pair will end playback once the last controller has ended playback.
 ///
 /// The total duration will be the largest duration + offset of the controllers.
-class SyncedPlayerControllerGroup extends GenericPlayerController {
-  SyncedPlayerControllerGroup(
-    this.controllers, {
-    this.masterController,
+// TODO extend dartx Pair?
+class SyncedPlayerControllerPair extends GenericPlayerController {
+  SyncedPlayerControllerPair({
+    required this.mainController,
+    required this.secondaryController,
+    this.offset = Duration.zero,
     this.syncPeriod = const Duration(milliseconds: 500),
     this.marginOfError = const Duration(milliseconds: 500),
   });
 
-  /// Map containing all controllers to be kept in sync,
-  /// and their position's offset compared to the group's [position].
-  ///
-  /// If a controller's offset is negative, the start will be cut off.
-  ///
-  /// If this map is modified during playback,
-  /// you can use [forceSync] to update the offsets faster.
-  final Map<GenericPlayerController, Duration> controllers;
-
   /// A controller to be considered the 'main' reference.
-  /// All [controllers] will be synced relative to this [masterController].
-  ///
-  /// If no [masterController] is specified, sync will be relative to a
-  /// virtual timeline.
-  final GenericPlayerController? masterController;
+  /// The [secondaryController] will be synced relative to this.
+  final GenericPlayerController mainController;
+
+  /// A controller to be considered the 'secondary' reference.
+  /// This will be synced relative to the [mainController].
+  final GenericPlayerController secondaryController;
+
+  /// A duration specifying the offset between the [mainController] and the
+  /// [secondaryController].
+  final Duration offset;
 
   /// A duration specifying often should the controllers' position checked and
   /// synced if needed.
   final Duration syncPeriod;
 
-  /// A duration specifying how much of a difference can a controller have
-  /// between it's actual position and expected position before being considered
+  /// A duration specifying how large the difference between the
+  /// [mainController] and [secondaryController] can be before being considered
   /// out of sync.
   final Duration marginOfError;
 
