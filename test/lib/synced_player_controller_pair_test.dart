@@ -33,20 +33,30 @@ class TestController extends GenericPlayerController {
 void main() {
   // test('', () {});
 
-  const value1Minute = GenericPlayerValue(duration: Duration(minutes: 1));
-  const value2Minutes = GenericPlayerValue(duration: Duration(minutes: 2));
+  const uninitialized2Minutes =
+      GenericPlayerValue(duration: Duration(minutes: 2));
+  const initialized2Minutes =
+      GenericPlayerValue(duration: Duration(minutes: 2), isInitialized: true);
+  const uninitialized9Minutes =
+      GenericPlayerValue(duration: Duration(minutes: 9));
+  const initialized9Minutes =
+      GenericPlayerValue(duration: Duration(minutes: 9), isInitialized: true);
 
   setUp(() {});
 
   test('uninitialized controller should not do anything', () async {
     final pair = SyncedPlayerControllerPair(
-      mainController: TestController(initialValue: value1Minute),
-      secondaryController: TestController(initialValue: value2Minutes),
+      mainController: TestController(initialValue: uninitialized2Minutes),
+      secondaryController: TestController(initialValue: uninitialized9Minutes),
     );
 
     await pair.play();
-    expect(pair.mainController.value, value1Minute);
-    expect(pair.secondaryController.value, value2Minutes);
+    await pair.pause();
+    await pair.setPosition(const Duration(minutes: 5));
+    await pair.setPosition(const Duration(minutes: 50));
+    await pair.setPosition(const Duration(minutes: 0));
+    expect(pair.mainController.value, uninitialized2Minutes);
+    expect(pair.secondaryController.value, uninitialized9Minutes);
   });
 
   group('play', () {
