@@ -3,10 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 class TestController extends GenericPlayerController {
   TestController({
-    required Duration duration,
     GenericPlayerValue initialValue =
         const GenericPlayerValue(duration: Duration.zero),
-  }) : super(initialDuration: duration) {
+  }) : super() {
     value = initialValue;
   }
 
@@ -34,19 +33,20 @@ class TestController extends GenericPlayerController {
 void main() {
   // test('', () {});
 
+  const value1Minute = GenericPlayerValue(duration: Duration(minutes: 1));
+  const value2Minutes = GenericPlayerValue(duration: Duration(minutes: 2));
+
   setUp(() {});
 
   test('uninitialized controller should not do anything', () async {
     final pair = SyncedPlayerControllerPair(
-      mainController: TestController(duration: const Duration(minutes: 1)),
-      secondaryController: TestController(duration: const Duration(minutes: 2)),
+      mainController: TestController(initialValue: value1Minute),
+      secondaryController: TestController(initialValue: value2Minutes),
     );
 
     await pair.play();
-    expect(pair.mainController.value,
-        const GenericPlayerValue(duration: Duration(minutes: 1)));
-    expect(pair.secondaryController.value,
-        const GenericPlayerValue(duration: Duration(minutes: 2)));
+    expect(pair.mainController.value, value1Minute);
+    expect(pair.secondaryController.value, value2Minutes);
   });
 
   group('play', () {
