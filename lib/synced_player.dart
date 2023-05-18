@@ -254,6 +254,9 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
     if (secondaryController.value.isInitialized == false) {
       await secondaryController.initialize();
     }
+
+    value = value.copyWith(isInitialized: true);
+
     // TODO register listeners
   }
 
