@@ -10,7 +10,8 @@ class TestController extends GenericPlayerController {
   }
 
   @override
-  Future<void> initialize() async => value.copyWith(isInitialized: true);
+  Future<void> initialize() async =>
+      value = value.copyWith(isInitialized: true);
 
   @override
   Future<void> pause() async => value = value.copyWith(isPlaying: false);
@@ -43,6 +44,63 @@ void main() {
       GenericPlayerValue(duration: Duration(minutes: 9), isInitialized: true);
 
   setUp(() {});
+
+  group('initialize', () {
+    test('all uninitialized', () async {
+      final pair = SyncedPlayerControllerPair(
+        mainController: TestController(initialValue: uninitialized2Minutes),
+        secondaryController:
+            TestController(initialValue: uninitialized9Minutes),
+      );
+
+      await pair.initialize();
+      expect(pair.value.isInitialized, true);
+      expect(pair.mainController.value, initialized2Minutes);
+      expect(pair.secondaryController.value, initialized9Minutes);
+    });
+    test('controllers initialized', () async {
+      final pair = SyncedPlayerControllerPair(
+        mainController: TestController(initialValue: initialized2Minutes),
+        secondaryController: TestController(initialValue: initialized9Minutes),
+      );
+
+      await pair.initialize();
+      expect(pair.value.isInitialized, true);
+      expect(pair.mainController.value, initialized2Minutes);
+      expect(pair.secondaryController.value, initialized9Minutes);
+    });
+    test('one controller initialized', () async {
+      final pair1 = SyncedPlayerControllerPair(
+        mainController: TestController(initialValue: initialized2Minutes),
+        secondaryController:
+            TestController(initialValue: uninitialized9Minutes),
+      );
+      final pair2 = SyncedPlayerControllerPair(
+        mainController: TestController(initialValue: uninitialized2Minutes),
+        secondaryController: TestController(initialValue: initialized9Minutes),
+      );
+
+      await pair1.initialize();
+      await pair2.initialize();
+      expect(pair1.value.isInitialized, true);
+      expect(pair1.mainController.value, initialized2Minutes);
+      expect(pair1.secondaryController.value, initialized9Minutes);
+      expect(pair2.value.isInitialized, true);
+      expect(pair2.mainController.value, initialized2Minutes);
+      expect(pair2.secondaryController.value, initialized9Minutes);
+    });
+    test('all initialized', () async {
+      final pair = SyncedPlayerControllerPair(
+        mainController: TestController(initialValue: initialized2Minutes),
+        secondaryController: TestController(initialValue: initialized9Minutes),
+      );
+
+      await pair.initialize();
+      expect(pair.value.isInitialized, true);
+      expect(pair.mainController.value, initialized2Minutes);
+      expect(pair.secondaryController.value, initialized9Minutes);
+    });
+  });
 
   group('setPosition', () {
     group('pair', () {
