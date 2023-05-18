@@ -264,19 +264,18 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
   }
 
   @override
-  Future<void> setPosition(Duration position) {
+  Future<void> setPosition(Duration position) async {
     // TODO: implement jumpTo
     throw UnimplementedError();
   }
 
   @override
-  Future<void> play() {
+  Future<void> play() async {
     // TODO: implement play
-    throw UnimplementedError();
   }
 
   @override
-  Future<void> pause() {
+  Future<void> pause() async {
     // TODO: implement pause
     throw UnimplementedError();
   }
@@ -286,13 +285,13 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
   Future<Duration?> get position => throw UnimplementedError();
 
   @override
-  Future<void> setPlaybackSpeed(double speed) {
+  Future<void> setPlaybackSpeed(double speed) async {
     // TODO: implement setPlaybackSpeed
     throw UnimplementedError();
   }
 
   /// Synchronize immediately, instead of waiting for [syncPeriod].
-  Future<void> forceSync({bool ignoreMarginOfError = false}) {
+  Future<void> forceSync({bool ignoreMarginOfError = false}) async {
     // TODO: implement forceSync
     throw UnimplementedError();
   }
