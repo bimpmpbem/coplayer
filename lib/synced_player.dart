@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 
 /// The duration, current position, buffering state, error state and settings
@@ -26,9 +28,9 @@ class GenericPlayerValue {
   /// Returns an instance with the given [errorDescription].
   const GenericPlayerValue.erroneous(String errorDescription)
       : this(
-            duration: Duration.zero,
-            isInitialized: false,
-            errorDescription: errorDescription);
+      duration: Duration.zero,
+      isInitialized: false,
+      errorDescription: errorDescription);
 
   /// This constant is just to indicate that parameter is not passed to [copyWith]
   /// workaround for this issue https://github.com/dart-lang/language/issues/2009
@@ -113,28 +115,28 @@ class GenericPlayerValue {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is GenericPlayerValue &&
-          runtimeType == other.runtimeType &&
-          duration == other.duration &&
-          position == other.position &&
-          isPlaying == other.isPlaying &&
-          isLooping == other.isLooping &&
-          isBuffering == other.isBuffering &&
-          playbackSpeed == other.playbackSpeed &&
-          errorDescription == other.errorDescription &&
-          isInitialized == other.isInitialized;
+          other is GenericPlayerValue &&
+              runtimeType == other.runtimeType &&
+              duration == other.duration &&
+              position == other.position &&
+              isPlaying == other.isPlaying &&
+              isLooping == other.isLooping &&
+              isBuffering == other.isBuffering &&
+              playbackSpeed == other.playbackSpeed &&
+              errorDescription == other.errorDescription &&
+              isInitialized == other.isInitialized;
 
   @override
   int get hashCode => Object.hash(
-        duration,
-        position,
-        isPlaying,
-        isLooping,
-        isBuffering,
-        playbackSpeed,
-        errorDescription,
-        isInitialized,
-      );
+    duration,
+    position,
+    isPlaying,
+    isLooping,
+    isBuffering,
+    playbackSpeed,
+    errorDescription,
+    isInitialized,
+  );
 }
 
 /// Types of behavior a [GenericPlayerController] can choose when encountering
@@ -155,8 +157,7 @@ enum ObstructionBehavior {
 }
 
 /// An interface for player controllers that allow common basic controls.
-abstract class GenericPlayerController
-    extends ValueNotifier<GenericPlayerValue> {
+abstract class GenericPlayerController extends ValueNotifier<GenericPlayerValue> {
   GenericPlayerController({
     this.obstructionBehavior = ObstructionBehavior.none,
     Duration initialDuration = Duration.zero,
@@ -271,19 +272,17 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
   Future<void> setPosition(Duration position) async {
     if (!value.isInitialized) return;
 
-    final Duration latestPosition = mainController.value.duration
-            .compareTo(secondaryController.value.duration + offset)
-            .isNegative
-        ? secondaryController.value.duration + offset
-        : mainController.value.duration;
+    final Duration maxPosition = Duration(
+        microseconds: max(mainController.value.duration.inMicroseconds,
+            (secondaryController.value.duration + offset).inMicroseconds));
 
-    final Duration earliestPosition =
-        offset.compareTo(Duration.zero).isNegative ? Duration.zero : offset;
+    final Duration minPosition =
+        Duration(microseconds: min(0, offset.inMicroseconds));
 
-    if (position > latestPosition) {
-      value = value.copyWith(position: latestPosition);
-    } else if (position < earliestPosition) {
-      value = value.copyWith(position: earliestPosition);
+    if (position > maxPosition) {
+      value = value.copyWith(position: maxPosition);
+    } else if (position < minPosition) {
+      value = value.copyWith(position: minPosition);
     } else {
       value = value.copyWith(position: position);
     }
