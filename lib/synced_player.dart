@@ -159,7 +159,8 @@ abstract class GenericPlayerController
     extends ValueNotifier<GenericPlayerValue> {
   GenericPlayerController({
     this.obstructionBehavior = ObstructionBehavior.none,
-  }) : super(const GenericPlayerValue(duration: Duration.zero));
+    Duration initialDuration = Duration.zero,
+  }) : super(GenericPlayerValue(duration: initialDuration));
 
   /// Specifies how playback should change when there is some interruption
   /// to the user.
