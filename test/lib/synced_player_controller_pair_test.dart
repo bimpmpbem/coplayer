@@ -55,13 +55,27 @@ void main() {
     await pair.setPosition(const Duration(minutes: 5));
     await pair.setPosition(const Duration(minutes: 50));
     await pair.setPosition(const Duration(minutes: 0));
+
     expect(pair.mainController.value, uninitialized2Minutes);
     expect(pair.secondaryController.value, uninitialized9Minutes);
   });
 
   group('play', () {
     group('pair', () {
-      test('when both have valid position should play both', () {});
+      test('when both have valid position should play both', () async {
+        final pair = SyncedPlayerControllerPair(
+          mainController: TestController(initialValue: initialized9Minutes),
+          secondaryController:
+              TestController(initialValue: initialized2Minutes),
+        );
+
+        await pair.setPosition(const Duration(minutes: 1));
+        await pair.play();
+
+        expect(pair.value.isPlaying, true);
+        expect(pair.mainController.value.isPlaying, true);
+        expect(pair.secondaryController.value.isPlaying, true);
+      });
       test('when one has invalid position should play only valid', () {});
       test('when both already playing should do nothing', () {});
       test('when one already playing should play the other', () {});
