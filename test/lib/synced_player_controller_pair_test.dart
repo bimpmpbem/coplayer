@@ -163,6 +163,7 @@ void main() {
               TestController(initialValue: initialized2Minutes),
         );
 
+        await pair.initialize();
         await pair.setPosition(const Duration(minutes: 1));
         await pair.play();
 
