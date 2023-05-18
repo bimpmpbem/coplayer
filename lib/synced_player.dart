@@ -28,9 +28,9 @@ class GenericPlayerValue {
   /// Returns an instance with the given [errorDescription].
   const GenericPlayerValue.erroneous(String errorDescription)
       : this(
-      duration: Duration.zero,
-      isInitialized: false,
-      errorDescription: errorDescription);
+            duration: Duration.zero,
+            isInitialized: false,
+            errorDescription: errorDescription);
 
   /// This constant is just to indicate that parameter is not passed to [copyWith]
   /// workaround for this issue https://github.com/dart-lang/language/issues/2009
@@ -115,28 +115,28 @@ class GenericPlayerValue {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-          other is GenericPlayerValue &&
-              runtimeType == other.runtimeType &&
-              duration == other.duration &&
-              position == other.position &&
-              isPlaying == other.isPlaying &&
-              isLooping == other.isLooping &&
-              isBuffering == other.isBuffering &&
-              playbackSpeed == other.playbackSpeed &&
-              errorDescription == other.errorDescription &&
-              isInitialized == other.isInitialized;
+      other is GenericPlayerValue &&
+          runtimeType == other.runtimeType &&
+          duration == other.duration &&
+          position == other.position &&
+          isPlaying == other.isPlaying &&
+          isLooping == other.isLooping &&
+          isBuffering == other.isBuffering &&
+          playbackSpeed == other.playbackSpeed &&
+          errorDescription == other.errorDescription &&
+          isInitialized == other.isInitialized;
 
   @override
   int get hashCode => Object.hash(
-    duration,
-    position,
-    isPlaying,
-    isLooping,
-    isBuffering,
-    playbackSpeed,
-    errorDescription,
-    isInitialized,
-  );
+        duration,
+        position,
+        isPlaying,
+        isLooping,
+        isBuffering,
+        playbackSpeed,
+        errorDescription,
+        isInitialized,
+      );
 }
 
 /// Types of behavior a [GenericPlayerController] can choose when encountering
@@ -157,7 +157,8 @@ enum ObstructionBehavior {
 }
 
 /// An interface for player controllers that allow common basic controls.
-abstract class GenericPlayerController extends ValueNotifier<GenericPlayerValue> {
+abstract class GenericPlayerController
+    extends ValueNotifier<GenericPlayerValue> {
   GenericPlayerController({
     this.obstructionBehavior = ObstructionBehavior.none,
     Duration initialDuration = Duration.zero,
@@ -279,18 +280,44 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
     final Duration minPosition =
         Duration(microseconds: min(0, offset.inMicroseconds));
 
-    if (position > maxPosition) {
+    final Duration mainPosition = position;
+    final Duration secondaryPosition = position - offset;
+
+    if (position >= maxPosition) {
       value = value.copyWith(position: maxPosition);
-    } else if (position < minPosition) {
+      pause(); // pause at end
+      // TODO looping?
+    } else if (position <= minPosition) {
       value = value.copyWith(position: minPosition);
     } else {
       value = value.copyWith(position: position);
     }
 
     await Future.wait([
-      mainController.setPosition(position),
-      secondaryController.setPosition(position + offset)
+      _setControllerPosition(mainController, mainPosition),
+      _setControllerPosition(secondaryController, secondaryPosition),
     ]);
+  }
+
+  Future<void> _setControllerPosition(
+      GenericPlayerController controller, Duration position) {
+    if (position >= controller.value.duration) {
+      return controller
+          .pause()
+          .then((_) => controller.setPosition(controller.value.duration));
+    } else if (position <= Duration.zero) {
+      return controller
+          .pause()
+          .then((_) => controller.setPosition(Duration.zero));
+    } else {
+      return controller.setPosition(position).then((_) {
+        if (value.isPlaying) {
+          controller.play();
+        } else {
+          controller.pause();
+        }
+      });
+    }
   }
 
   @override
