@@ -128,7 +128,7 @@ void main() {
         test('offset should be calculated relative to mainController',
             () async {
           final pair = SyncedPlayerControllerPair(
-            mainController: TestController(initialValue: uninitialized2Minutes),
+            mainController: TestController(initialValue: uninitialized9Minutes),
             secondaryController:
                 TestController(initialValue: uninitialized9Minutes),
             offset: const Duration(minutes: 3),
@@ -137,11 +137,11 @@ void main() {
           await pair.initialize();
           await pair.play();
 
-          await pair.setPosition(const Duration(minutes: 1));
+          await pair.setPosition(const Duration(minutes: 7));
 
-          expect(pair.value.position, const Duration(minutes: 1));
+          expect(pair.value.position, const Duration(minutes: 7));
           expect(
-              pair.mainController.value.position, const Duration(minutes: 1));
+              pair.mainController.value.position, const Duration(minutes: 7));
           expect(pair.secondaryController.value.position,
               const Duration(minutes: 4));
         });
@@ -185,7 +185,7 @@ void main() {
         test('when target before secondary should clamp & pause secondary',
             () async {
           final pair = SyncedPlayerControllerPair(
-            mainController: TestController(initialValue: uninitialized2Minutes),
+            mainController: TestController(initialValue: uninitialized9Minutes),
             secondaryController:
                 TestController(initialValue: uninitialized9Minutes),
             offset: const Duration(minutes: 3),
@@ -200,7 +200,7 @@ void main() {
           expect(pair.mainController.value.isPlaying, true);
           expect(pair.secondaryController.value.isPlaying, false);
           expect(
-              pair.mainController.value.position, const Duration(minutes: 2));
+              pair.mainController.value.position, const Duration(minutes: 1));
           expect(pair.secondaryController.value.position, Duration.zero);
         });
       });
