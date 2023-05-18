@@ -226,6 +226,7 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
 
   /// A controller to be considered the 'main' reference.
   /// The [secondaryController] will be synced relative to this.
+  // TODO maybe accept ValueNotifier<GenericPlayerValue> instead
   final GenericPlayerController mainController;
 
   /// A controller to be considered the 'secondary' reference.
@@ -234,7 +235,7 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
 
   /// A duration specifying the offset between the [mainController] and the
   /// [secondaryController].
-  final Duration offset;
+  Duration offset;
 
   /// A duration specifying often should the controllers' position checked and
   /// synced if needed.
