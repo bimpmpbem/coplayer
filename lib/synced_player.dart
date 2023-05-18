@@ -247,8 +247,13 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
 
   @override
   Future<void> initialize() async {
-    // TODO: implement initialize
-    throw UnimplementedError();
+    if (mainController.value.isInitialized == false) {
+      await mainController.initialize();
+    }
+    if (secondaryController.value.isInitialized == false) {
+      await secondaryController.initialize();
+    }
+    // TODO register listeners
   }
 
   @override
