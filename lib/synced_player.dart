@@ -266,8 +266,29 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
 
   @override
   Future<void> setPosition(Duration position) async {
-    // TODO: implement jumpTo
-    throw UnimplementedError();
+    if (!value.isInitialized) return;
+
+    final Duration latestPosition = mainController.value.duration
+            .compareTo(secondaryController.value.duration + offset)
+            .isNegative
+        ? secondaryController.value.duration + offset
+        : mainController.value.duration;
+
+    final Duration earliestPosition =
+        offset.compareTo(Duration.zero).isNegative ? Duration.zero : offset;
+
+    if (position > latestPosition) {
+      value = value.copyWith(position: latestPosition);
+    } else if (position < earliestPosition) {
+      value = value.copyWith(position: earliestPosition);
+    } else {
+      value = value.copyWith(position: position);
+    }
+
+    await Future.wait([
+      mainController.setPosition(position),
+      secondaryController.setPosition(position + offset)
+    ]);
   }
 
   @override
