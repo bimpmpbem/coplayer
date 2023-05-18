@@ -44,24 +44,60 @@ void main() {
 
   setUp(() {});
 
-  test('uninitialized controller should not do anything', () async {
-    final pair = SyncedPlayerControllerPair(
-      mainController: TestController(initialValue: uninitialized2Minutes),
-      secondaryController: TestController(initialValue: uninitialized9Minutes),
-    );
+  group('setPosition', () {
+    group('pair', () {
+      test('when not initialized should do nothing', () async {
+        final pair = SyncedPlayerControllerPair(
+          mainController: TestController(initialValue: uninitialized2Minutes),
+          secondaryController:
+              TestController(initialValue: uninitialized9Minutes),
+        );
 
-    await pair.play();
-    await pair.pause();
-    await pair.setPosition(const Duration(minutes: 5));
-    await pair.setPosition(const Duration(minutes: 50));
-    await pair.setPosition(const Duration(minutes: 0));
+        await pair.setPosition(const Duration(minutes: 5));
+        expect(pair.mainController.value, uninitialized2Minutes);
+        expect(pair.secondaryController.value, uninitialized9Minutes);
 
-    expect(pair.mainController.value, uninitialized2Minutes);
-    expect(pair.secondaryController.value, uninitialized9Minutes);
+        await pair.setPosition(const Duration(minutes: 50));
+        expect(pair.mainController.value, uninitialized2Minutes);
+        expect(pair.secondaryController.value, uninitialized9Minutes);
+
+        await pair.setPosition(const Duration(minutes: 0));
+        expect(pair.mainController.value, uninitialized2Minutes);
+        expect(pair.secondaryController.value, uninitialized9Minutes);
+      });
+
+      test('should not change playing status of pair', () {});
+      test('when one reached end & stopped & target is valid should play',
+          () {});
+      test('when target before main should only play secondary', () {});
+      test('when target before secondary should only play main', () {});
+      test('when target before both should clamp to earliest', () {});
+      test('when target after main should only play secondary', () {});
+      test('when target after secondary should only play main', () {});
+      test('when target after both should clamp to latest', () {});
+
+      test('offset should be calculated relative to mainController', () {});
+    });
+    group('controller in pair', () {
+      test('when both playing should pause', () {});
+      test('when one playing should pause the other', () {});
+      test('when none playing should do nothing', () {});
+    });
   });
-
   group('play', () {
     group('pair', () {
+      test('when not initialized should do nothing', () async {
+        final pair = SyncedPlayerControllerPair(
+          mainController: TestController(initialValue: uninitialized2Minutes),
+          secondaryController:
+              TestController(initialValue: uninitialized9Minutes),
+        );
+
+        await pair.play();
+        expect(pair.mainController.value, uninitialized2Minutes);
+        expect(pair.secondaryController.value, uninitialized9Minutes);
+      });
+
       test('when both have valid position should play both', () async {
         final pair = SyncedPlayerControllerPair(
           mainController: TestController(initialValue: initialized9Minutes),
@@ -91,6 +127,19 @@ void main() {
   });
   group('pause', () {
     group('pair', () {
+      test('when not initialized should do nothing', () async {
+        final pair = SyncedPlayerControllerPair(
+          mainController: TestController(initialValue: uninitialized2Minutes),
+          secondaryController:
+              TestController(initialValue: uninitialized9Minutes),
+        );
+
+        await pair.pause();
+        ;
+        expect(pair.mainController.value, uninitialized2Minutes);
+        expect(pair.secondaryController.value, uninitialized9Minutes);
+      });
+
       test('when both playing should pause', () {});
       test('when one playing should pause the other', () {});
       test('when none playing should do nothing', () {});
