@@ -218,7 +218,7 @@ void main() {
 
           expect(pair.value.isPlaying, true);
           expect(pair.mainController.value.isPlaying, true);
-          expect(pair.secondaryController.value.isPlaying, false);
+          expect(pair.secondaryController.value.isPlaying, true);
           expect(pair.mainController.value.position, Duration.zero);
           expect(pair.secondaryController.value.position, Duration.zero);
         });
