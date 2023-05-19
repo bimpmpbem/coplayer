@@ -345,12 +345,12 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
   Future<void> play() async {
     if (!value.isInitialized) return;
 
-    value = value.copyWith(isPlaying: true);
-
     await Future.wait([
       mainController.play(),
       secondaryController.play(),
     ]);
+
+    value = value.copyWith(isPlaying: true);
   }
 
   @override
