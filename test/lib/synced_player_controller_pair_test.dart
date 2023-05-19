@@ -36,12 +36,24 @@ void main() {
 
   const uninitialized2Minutes =
       GenericPlayerValue(duration: Duration(minutes: 2));
-  const initialized2Minutes =
-      GenericPlayerValue(duration: Duration(minutes: 2), isInitialized: true);
   const uninitialized9Minutes =
       GenericPlayerValue(duration: Duration(minutes: 9));
+  const initialized2Minutes =
+      GenericPlayerValue(duration: Duration(minutes: 2), isInitialized: true);
   const initialized9Minutes =
       GenericPlayerValue(duration: Duration(minutes: 9), isInitialized: true);
+  const playing2Minutes = GenericPlayerValue(
+    duration: Duration(minutes: 2),
+    isInitialized: true,
+    isPlaying: true,
+    position: Duration(seconds: 1),
+  );
+  const playing9Minutes = GenericPlayerValue(
+    duration: Duration(minutes: 9),
+    isInitialized: true,
+    isPlaying: true,
+    position: Duration(seconds: 5),
+  );
 
   setUp(() {});
 
@@ -373,14 +385,46 @@ void main() {
         );
 
         await pair.pause();
-        ;
+
         expect(pair.mainController.value, uninitialized2Minutes);
         expect(pair.secondaryController.value, uninitialized9Minutes);
       });
 
-      test('when both playing should pause', () {});
-      test('when one playing should pause the other', () {});
-      test('when none playing should do nothing', () {});
+      test('when both playing should pause', () async {
+        final pair = SyncedPlayerControllerPair(
+          mainController: TestController(initialValue: playing9Minutes),
+          secondaryController: TestController(initialValue: playing2Minutes),
+        );
+
+        await pair.pause();
+
+        expect(pair.mainController.value.isPlaying, false);
+        expect(pair.secondaryController.value.isPlaying, false);
+      });
+      test('when one playing should pause the other', () async {
+        final pair = SyncedPlayerControllerPair(
+          mainController: TestController(initialValue: playing9Minutes),
+          secondaryController:
+              TestController(initialValue: initialized9Minutes),
+        );
+
+        await pair.pause();
+
+        expect(pair.mainController.value.isPlaying, false);
+        expect(pair.secondaryController.value.isPlaying, false);
+      });
+      test('when none playing should do nothing', () async {
+        final pair = SyncedPlayerControllerPair(
+          mainController: TestController(initialValue: initialized9Minutes),
+          secondaryController:
+              TestController(initialValue: initialized9Minutes),
+        );
+
+        await pair.pause();
+
+        expect(pair.mainController.value.isPlaying, false);
+        expect(pair.secondaryController.value.isPlaying, false);
+      });
     });
     group('controller in pair', () {
       test('when both playing should pause', () {});
