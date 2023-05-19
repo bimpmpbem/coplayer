@@ -396,6 +396,7 @@ void main() {
           secondaryController: TestController(initialValue: playing2Minutes),
         );
 
+        await pair.initialize();
         await pair.pause();
 
         expect(pair.mainController.value.isPlaying, false);
@@ -408,6 +409,7 @@ void main() {
               TestController(initialValue: initialized9Minutes),
         );
 
+        await pair.initialize();
         await pair.pause();
 
         expect(pair.mainController.value.isPlaying, false);
