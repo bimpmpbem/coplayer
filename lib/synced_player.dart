@@ -284,7 +284,6 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
     final Duration secondaryPosition = position - offset;
 
     if (position >= maxPosition) {
-      // end
       // pause
       await pause();
 
@@ -304,7 +303,6 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
 
       // TODO looping?
     } else if (position <= minPosition) {
-      // start
       await Future.wait([
         // clamp
         _setControllerPosition(mainController, Duration.zero),
@@ -357,8 +355,14 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
 
   @override
   Future<void> pause() async {
-    // TODO: implement pause
-    throw UnimplementedError();
+    if (!value.isInitialized) return;
+
+    await Future.wait([
+      mainController.pause(),
+      secondaryController.pause(),
+    ]);
+
+    value = value.copyWith(isPlaying: false);
   }
 
   @override
