@@ -294,9 +294,9 @@ void main() {
           expect(pair.mainController.value.isPlaying, false);
           expect(pair.secondaryController.value.isPlaying, false);
           expect(
-              pair.mainController.value.position, const Duration(minutes: 10));
+              pair.mainController.value.position, const Duration(minutes: 9));
           expect(pair.secondaryController.value.position,
-              const Duration(minutes: 10));
+              const Duration(minutes: 9));
         });
       });
       group('paused', () {
