@@ -284,28 +284,51 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
     final Duration secondaryPosition = position - offset;
 
     if (position >= maxPosition) {
+      // end
+      // pause
+      await pause();
+
+      // clamp
+      await Future.wait([
+        _setControllerPosition(
+          mainController,
+          mainController.value.duration,
+        ),
+        _setControllerPosition(
+          secondaryController,
+          secondaryController.value.duration,
+        ),
+      ]);
+
       value = value.copyWith(position: maxPosition);
-      pause(); // pause at end
+
       // TODO looping?
     } else if (position <= minPosition) {
+      // start
+      await Future.wait([
+        // clamp
+        _setControllerPosition(mainController, Duration.zero),
+        _setControllerPosition(secondaryController, Duration.zero),
+      ]);
+
       value = value.copyWith(position: minPosition);
     } else {
+      await Future.wait([
+        _setControllerPosition(mainController, mainPosition),
+        _setControllerPosition(secondaryController, secondaryPosition),
+      ]);
+
       value = value.copyWith(position: position);
     }
-
-    await Future.wait([
-      _setControllerPosition(mainController, mainPosition),
-      _setControllerPosition(secondaryController, secondaryPosition),
-    ]);
   }
 
   Future<void> _setControllerPosition(
       GenericPlayerController controller, Duration position) {
-    if (position >= controller.value.duration) {
+    if (position > controller.value.duration) {
       return controller
           .pause()
           .then((_) => controller.setPosition(controller.value.duration));
-    } else if (position <= Duration.zero) {
+    } else if (position < Duration.zero) {
       return controller
           .pause()
           .then((_) => controller.setPosition(Duration.zero));
