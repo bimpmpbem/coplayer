@@ -115,396 +115,316 @@ void main() {
   });
 
   group('setPosition', () {
+    late SyncedPlayerControllerPair mainBeforeSecondary;
+    late SyncedPlayerControllerPair secondaryBeforeMain;
+    setUp(() {
+      mainBeforeSecondary = SyncedPlayerControllerPair(
+        mainController: TestController(initialValue: uninitialized9Minutes),
+        secondaryController:
+            TestController(initialValue: uninitialized9Minutes),
+        offset: const Duration(minutes: 3),
+      );
+      secondaryBeforeMain = SyncedPlayerControllerPair(
+        mainController: TestController(initialValue: uninitialized9Minutes),
+        secondaryController:
+            TestController(initialValue: uninitialized9Minutes),
+        offset: const Duration(minutes: -3),
+      );
+    });
+
     group('pair', () {
       test('when not initialized should do nothing', () async {
-        final pair = SyncedPlayerControllerPair(
-          mainController: TestController(initialValue: uninitialized2Minutes),
-          secondaryController:
-              TestController(initialValue: uninitialized9Minutes),
-        );
+        await mainBeforeSecondary.setPosition(const Duration(minutes: 5));
+        expect(mainBeforeSecondary.mainController.value, uninitialized9Minutes);
+        expect(mainBeforeSecondary.secondaryController.value,
+            uninitialized9Minutes);
 
-        await pair.setPosition(const Duration(minutes: 5));
-        expect(pair.mainController.value, uninitialized2Minutes);
-        expect(pair.secondaryController.value, uninitialized9Minutes);
+        await mainBeforeSecondary.setPosition(const Duration(minutes: 50));
+        expect(mainBeforeSecondary.mainController.value, uninitialized9Minutes);
+        expect(mainBeforeSecondary.secondaryController.value,
+            uninitialized9Minutes);
 
-        await pair.setPosition(const Duration(minutes: 50));
-        expect(pair.mainController.value, uninitialized2Minutes);
-        expect(pair.secondaryController.value, uninitialized9Minutes);
-
-        await pair.setPosition(const Duration(minutes: 0));
-        expect(pair.mainController.value, uninitialized2Minutes);
-        expect(pair.secondaryController.value, uninitialized9Minutes);
+        await mainBeforeSecondary.setPosition(const Duration(minutes: 0));
+        expect(mainBeforeSecondary.mainController.value, uninitialized9Minutes);
+        expect(mainBeforeSecondary.secondaryController.value,
+            uninitialized9Minutes);
       });
 
       group('playing', () {
         test('offset should be calculated relative to mainController',
-            () async {
-          final pair = SyncedPlayerControllerPair(
-            mainController: TestController(initialValue: uninitialized9Minutes),
-            secondaryController:
-                TestController(initialValue: uninitialized9Minutes),
-            offset: const Duration(minutes: 3),
-          );
+                () async {
+          await mainBeforeSecondary.initialize();
+          await mainBeforeSecondary.play();
 
-          await pair.initialize();
-          await pair.play();
+          await mainBeforeSecondary.setPosition(const Duration(minutes: 7));
 
-          await pair.setPosition(const Duration(minutes: 7));
-
-          expect(pair.value.position, const Duration(minutes: 7));
           expect(
-              pair.mainController.value.position, const Duration(minutes: 7));
-          expect(pair.secondaryController.value.position,
+              mainBeforeSecondary.value.position, const Duration(minutes: 7));
+          expect(mainBeforeSecondary.mainController.value.position,
+              const Duration(minutes: 7));
+          expect(mainBeforeSecondary.secondaryController.value.position,
               const Duration(minutes: 4));
         });
 
         test('when target valid for both should keep playing', () async {
-          final pair = SyncedPlayerControllerPair(
-            mainController: TestController(initialValue: uninitialized9Minutes),
-            secondaryController:
-                TestController(initialValue: uninitialized9Minutes),
-            offset: const Duration(minutes: 3),
-          );
+          await mainBeforeSecondary.initialize();
+          await mainBeforeSecondary.play();
 
-          await pair.initialize();
-          await pair.play();
+          await mainBeforeSecondary.setPosition(const Duration(minutes: 1));
 
-          await pair.setPosition(const Duration(minutes: 1));
-
-          expect(pair.value.isPlaying, true);
+          expect(mainBeforeSecondary.value.isPlaying, true);
         });
 
         test('when target before main should clamp & pause main', () async {
-          final pair = SyncedPlayerControllerPair(
-            mainController: TestController(initialValue: uninitialized9Minutes),
-            secondaryController:
-                TestController(initialValue: uninitialized9Minutes),
-            offset: const Duration(minutes: -3),
-          );
+          await secondaryBeforeMain.initialize();
+          await secondaryBeforeMain.play();
 
-          await pair.initialize();
-          await pair.play();
+          await secondaryBeforeMain.setPosition(const Duration(minutes: -1));
 
-          await pair.setPosition(const Duration(minutes: -1));
-
-          expect(pair.value.isPlaying, true);
-          expect(pair.mainController.value.isPlaying, false);
-          expect(pair.secondaryController.value.isPlaying, true);
-          expect(pair.mainController.value.position, Duration.zero);
-          expect(pair.secondaryController.value.position,
+          expect(secondaryBeforeMain.value.isPlaying, true);
+          expect(secondaryBeforeMain.mainController.value.isPlaying, false);
+          expect(secondaryBeforeMain.secondaryController.value.isPlaying, true);
+          expect(
+              secondaryBeforeMain.mainController.value.position, Duration.zero);
+          expect(secondaryBeforeMain.secondaryController.value.position,
               const Duration(minutes: 2));
         });
         test('when target before secondary should clamp & pause secondary',
-            () async {
-          final pair = SyncedPlayerControllerPair(
-            mainController: TestController(initialValue: uninitialized9Minutes),
-            secondaryController:
-                TestController(initialValue: uninitialized9Minutes),
-            offset: const Duration(minutes: 3),
-          );
+                () async {
+          await mainBeforeSecondary.initialize();
+          await mainBeforeSecondary.play();
 
-          await pair.initialize();
-          await pair.play();
+          await mainBeforeSecondary.setPosition(const Duration(minutes: 1));
 
-          await pair.setPosition(const Duration(minutes: 1));
-
-          expect(pair.value.isPlaying, true);
-          expect(pair.mainController.value.isPlaying, true);
-          expect(pair.secondaryController.value.isPlaying, false);
+          expect(mainBeforeSecondary.value.isPlaying, true);
+          expect(mainBeforeSecondary.mainController.value.isPlaying, true);
           expect(
-              pair.mainController.value.position, const Duration(minutes: 1));
-          expect(pair.secondaryController.value.position, Duration.zero);
+              mainBeforeSecondary.secondaryController.value.isPlaying, false);
+          expect(mainBeforeSecondary.mainController.value.position,
+              const Duration(minutes: 1));
+          expect(mainBeforeSecondary.secondaryController.value.position,
+              Duration.zero);
         });
         test('when target before both should clamp to start and keep playing',
-            () async {
-          final pair = SyncedPlayerControllerPair(
-            mainController: TestController(initialValue: uninitialized9Minutes),
-            secondaryController:
-                TestController(initialValue: uninitialized9Minutes),
-          );
+                () async {
+          await mainBeforeSecondary.initialize();
+          await mainBeforeSecondary.play();
 
-          await pair.initialize();
-          await pair.play();
+          await mainBeforeSecondary.setPosition(const Duration(minutes: -10));
 
-          await pair.setPosition(const Duration(minutes: -1));
-
-          expect(pair.value.isPlaying, true);
-          expect(pair.mainController.value.isPlaying, true);
-          expect(pair.secondaryController.value.isPlaying, true);
-          expect(pair.mainController.value.position, Duration.zero);
-          expect(pair.secondaryController.value.position, Duration.zero);
+          expect(mainBeforeSecondary.value.isPlaying, true);
+          expect(mainBeforeSecondary.mainController.value.isPlaying, true);
+          expect(mainBeforeSecondary.secondaryController.value.isPlaying, true);
+          expect(
+              mainBeforeSecondary.mainController.value.position, Duration.zero);
+          expect(mainBeforeSecondary.secondaryController.value.position,
+              Duration.zero);
         });
 
         test('when target after main should clamp & pause main', () async {
-          final pair = SyncedPlayerControllerPair(
-            mainController: TestController(initialValue: uninitialized9Minutes),
-            secondaryController:
-                TestController(initialValue: uninitialized9Minutes),
-            offset: const Duration(minutes: 3),
-          );
+          await mainBeforeSecondary.initialize();
+          await mainBeforeSecondary.play();
 
-          await pair.initialize();
-          await pair.play();
+          await mainBeforeSecondary.setPosition(const Duration(minutes: 10));
 
-          await pair.setPosition(const Duration(minutes: 10));
-
-          expect(pair.value.isPlaying, true);
-          expect(pair.mainController.value.isPlaying, false);
-          expect(pair.secondaryController.value.isPlaying, true);
-          expect(
-              pair.mainController.value.position, const Duration(minutes: 9));
-          expect(pair.secondaryController.value.position,
+          expect(mainBeforeSecondary.value.isPlaying, true);
+          expect(mainBeforeSecondary.mainController.value.isPlaying, false);
+          expect(mainBeforeSecondary.secondaryController.value.isPlaying, true);
+          expect(mainBeforeSecondary.mainController.value.position,
+              const Duration(minutes: 9));
+          expect(mainBeforeSecondary.secondaryController.value.position,
               const Duration(minutes: 7));
         });
         test('when target after secondary should clamp & pause secondary',
-            () async {
-          final pair = SyncedPlayerControllerPair(
-            mainController: TestController(initialValue: uninitialized9Minutes),
-            secondaryController:
-                TestController(initialValue: uninitialized9Minutes),
-            offset: const Duration(minutes: -3),
-          );
+                () async {
+          await secondaryBeforeMain.initialize();
+          await secondaryBeforeMain.play();
 
-          await pair.initialize();
-          await pair.play();
+          await secondaryBeforeMain.setPosition(const Duration(minutes: 8));
 
-          await pair.setPosition(const Duration(minutes: 8));
-
-          expect(pair.value.isPlaying, true);
-          expect(pair.mainController.value.isPlaying, true);
-          expect(pair.secondaryController.value.isPlaying, false);
+          expect(secondaryBeforeMain.value.isPlaying, true);
+          expect(secondaryBeforeMain.mainController.value.isPlaying, true);
           expect(
-              pair.mainController.value.position, const Duration(minutes: 8));
-          expect(pair.secondaryController.value.position,
+              secondaryBeforeMain.secondaryController.value.isPlaying, false);
+          expect(secondaryBeforeMain.mainController.value.position,
+              const Duration(minutes: 8));
+          expect(secondaryBeforeMain.secondaryController.value.position,
               const Duration(minutes: 9));
         });
         test('when target after both should clamp to end and pause', () async {
-          final pair = SyncedPlayerControllerPair(
-            mainController: TestController(initialValue: uninitialized9Minutes),
-            secondaryController:
-                TestController(initialValue: uninitialized9Minutes),
-          );
+          await mainBeforeSecondary.initialize();
+          await mainBeforeSecondary.play();
 
-          await pair.initialize();
-          await pair.play();
+          await mainBeforeSecondary.setPosition(const Duration(minutes: 20));
 
-          await pair.setPosition(const Duration(minutes: 10));
-
-          expect(pair.value.isPlaying, false);
-          expect(pair.mainController.value.isPlaying, false);
-          expect(pair.secondaryController.value.isPlaying, false);
+          expect(mainBeforeSecondary.value.isPlaying, false);
+          expect(mainBeforeSecondary.mainController.value.isPlaying, false);
           expect(
-              pair.mainController.value.position, const Duration(minutes: 9));
-          expect(pair.secondaryController.value.position,
+              mainBeforeSecondary.secondaryController.value.isPlaying, false);
+          expect(mainBeforeSecondary.mainController.value.position,
+              const Duration(minutes: 9));
+          expect(mainBeforeSecondary.secondaryController.value.position,
               const Duration(minutes: 9));
         });
 
         test(
             'when a previously invalid target becomes valid should resume play',
-            () async {
-          final pair = SyncedPlayerControllerPair(
-            mainController: TestController(initialValue: uninitialized9Minutes),
-            secondaryController:
-                TestController(initialValue: uninitialized9Minutes),
-            offset: const Duration(minutes: 3),
-          );
+                () async {
+          await mainBeforeSecondary.initialize();
+          await mainBeforeSecondary.play();
 
-          await pair.initialize();
-          await pair.play();
+          await mainBeforeSecondary.setPosition(const Duration(minutes: 10));
 
-          await pair.setPosition(const Duration(minutes: 10));
+          expect(mainBeforeSecondary.value.isPlaying, true);
+          expect(mainBeforeSecondary.mainController.value.isPlaying, false);
+          expect(mainBeforeSecondary.secondaryController.value.isPlaying, true);
 
-          expect(pair.value.isPlaying, true);
-          expect(pair.mainController.value.isPlaying, false);
-          expect(pair.secondaryController.value.isPlaying, true);
+          await mainBeforeSecondary.setPosition(const Duration(minutes: 5));
 
-          await pair.setPosition(const Duration(minutes: 5));
-
-          expect(pair.value.isPlaying, true);
-          expect(pair.mainController.value.isPlaying, true);
-          expect(pair.secondaryController.value.isPlaying, true);
+          expect(mainBeforeSecondary.value.isPlaying, true);
+          expect(mainBeforeSecondary.mainController.value.isPlaying, true);
+          expect(mainBeforeSecondary.secondaryController.value.isPlaying, true);
         });
       });
       group('paused', () {
-        test('when target valid for both should keep playing', () async {
-          final pair = SyncedPlayerControllerPair(
-            mainController: TestController(initialValue: uninitialized2Minutes),
-            secondaryController:
-                TestController(initialValue: uninitialized9Minutes),
-          );
+        test('when target valid for both should stay paused', () async {
+          await mainBeforeSecondary.initialize();
 
-          await pair.initialize();
+          await mainBeforeSecondary.setPosition(const Duration(minutes: 4));
 
-          await pair.setPosition(const Duration(minutes: 1));
-
-          expect(pair.value.isPlaying, false);
+          expect(mainBeforeSecondary.value.isPlaying, false);
         });
 
         test('offset should be calculated relative to mainController',
             () async {
-          final pair = SyncedPlayerControllerPair(
-            mainController: TestController(initialValue: uninitialized9Minutes),
-            secondaryController:
-                TestController(initialValue: uninitialized9Minutes),
-            offset: const Duration(minutes: 3),
-          );
+          await mainBeforeSecondary.initialize();
 
-          await pair.initialize();
+          await mainBeforeSecondary.setPosition(const Duration(minutes: 7));
 
-          await pair.setPosition(const Duration(minutes: 7));
-
-          expect(pair.value.position, const Duration(minutes: 7));
           expect(
-              pair.mainController.value.position, const Duration(minutes: 7));
-          expect(pair.secondaryController.value.position,
+              mainBeforeSecondary.value.position, const Duration(minutes: 7));
+          expect(mainBeforeSecondary.mainController.value.position,
+              const Duration(minutes: 7));
+          expect(mainBeforeSecondary.secondaryController.value.position,
               const Duration(minutes: 4));
         });
 
         test('when target valid for both should stay paused', () async {
-          final pair = SyncedPlayerControllerPair(
-            mainController: TestController(initialValue: uninitialized9Minutes),
-            secondaryController:
-                TestController(initialValue: uninitialized9Minutes),
-            offset: const Duration(minutes: 3),
-          );
+          await mainBeforeSecondary.initialize();
 
-          await pair.initialize();
+          await mainBeforeSecondary.setPosition(const Duration(minutes: 4));
 
-          await pair.setPosition(const Duration(minutes: 1));
-
-          expect(pair.value.isPlaying, false);
+          expect(mainBeforeSecondary.value.isPlaying, false);
         });
 
         test('when target before main should clamp & stay paused', () async {
-          final pair = SyncedPlayerControllerPair(
-            mainController: TestController(initialValue: uninitialized9Minutes),
-            secondaryController:
-                TestController(initialValue: uninitialized9Minutes),
-            offset: const Duration(minutes: -3),
-          );
+          await secondaryBeforeMain.initialize();
 
-          await pair.initialize();
+          await secondaryBeforeMain.setPosition(const Duration(minutes: -1));
 
-          await pair.setPosition(const Duration(minutes: -1));
-
-          expect(pair.value.isPlaying, false);
-          expect(pair.mainController.value.isPlaying, false);
-          expect(pair.secondaryController.value.isPlaying, false);
-          expect(pair.mainController.value.position, Duration.zero);
-          expect(pair.secondaryController.value.position,
+          expect(secondaryBeforeMain.value.isPlaying, false);
+          expect(secondaryBeforeMain.mainController.value.isPlaying, false);
+          expect(
+              secondaryBeforeMain.secondaryController.value.isPlaying, false);
+          expect(
+              secondaryBeforeMain.mainController.value.position, Duration.zero);
+          expect(secondaryBeforeMain.secondaryController.value.position,
               const Duration(minutes: 2));
         });
         test('when target before secondary should clamp stay paused', () async {
-          final pair = SyncedPlayerControllerPair(
-            mainController: TestController(initialValue: uninitialized9Minutes),
-            secondaryController:
-                TestController(initialValue: uninitialized9Minutes),
-            offset: const Duration(minutes: 3),
-          );
+          await mainBeforeSecondary.initialize();
 
-          await pair.initialize();
+          await mainBeforeSecondary.setPosition(const Duration(minutes: 1));
 
-          await pair.setPosition(const Duration(minutes: 1));
-
-          expect(pair.value.isPlaying, false);
-          expect(pair.mainController.value.isPlaying, false);
-          expect(pair.secondaryController.value.isPlaying, false);
+          expect(mainBeforeSecondary.value.isPlaying, false);
+          expect(mainBeforeSecondary.mainController.value.isPlaying, false);
           expect(
-              pair.mainController.value.position, const Duration(minutes: 1));
-          expect(pair.secondaryController.value.position, Duration.zero);
+              mainBeforeSecondary.secondaryController.value.isPlaying, false);
+          expect(mainBeforeSecondary.mainController.value.position,
+              const Duration(minutes: 1));
+          expect(mainBeforeSecondary.secondaryController.value.position,
+              Duration.zero);
         });
         test('when target before both should clamp to start and stay paused',
-            () async {
-          final pair = SyncedPlayerControllerPair(
-            mainController: TestController(initialValue: uninitialized9Minutes),
-            secondaryController:
-                TestController(initialValue: uninitialized9Minutes),
-          );
+                () async {
+              await mainBeforeSecondary.initialize();
 
-          await pair.initialize();
+          await mainBeforeSecondary.setPosition(const Duration(minutes: -10));
 
-          await pair.setPosition(const Duration(minutes: -1));
-
-          expect(pair.value.isPlaying, false);
-          expect(pair.mainController.value.isPlaying, false);
-          expect(pair.secondaryController.value.isPlaying, false);
-          expect(pair.mainController.value.position, Duration.zero);
-          expect(pair.secondaryController.value.position, Duration.zero);
+          expect(mainBeforeSecondary.value.isPlaying, false);
+          expect(mainBeforeSecondary.mainController.value.isPlaying, false);
+          expect(
+              mainBeforeSecondary.secondaryController.value.isPlaying, false);
+          expect(
+              mainBeforeSecondary.mainController.value.position, Duration.zero);
+          expect(mainBeforeSecondary.secondaryController.value.position,
+              Duration.zero);
         });
 
         test('when target after main should clamp stay paused', () async {
-          final pair = SyncedPlayerControllerPair(
-            mainController: TestController(initialValue: uninitialized9Minutes),
-            secondaryController:
-                TestController(initialValue: uninitialized9Minutes),
-            offset: const Duration(minutes: 3),
-          );
+          await mainBeforeSecondary.initialize();
 
-          await pair.initialize();
+          await mainBeforeSecondary.setPosition(const Duration(minutes: 10));
 
-          await pair.setPosition(const Duration(minutes: 10));
-
-          expect(pair.value.isPlaying, false);
-          expect(pair.mainController.value.isPlaying, false);
-          expect(pair.secondaryController.value.isPlaying, false);
+          expect(mainBeforeSecondary.value.isPlaying, false);
+          expect(mainBeforeSecondary.mainController.value.isPlaying, false);
           expect(
-              pair.mainController.value.position, const Duration(minutes: 9));
-          expect(pair.secondaryController.value.position,
+              mainBeforeSecondary.secondaryController.value.isPlaying, false);
+          expect(mainBeforeSecondary.mainController.value.position,
+              const Duration(minutes: 9));
+          expect(mainBeforeSecondary.secondaryController.value.position,
               const Duration(minutes: 7));
         });
         test('when target after secondary should clamp stay paused', () async {
-          final pair = SyncedPlayerControllerPair(
-            mainController: TestController(initialValue: uninitialized9Minutes),
-            secondaryController:
-                TestController(initialValue: uninitialized9Minutes),
-            offset: const Duration(minutes: -3),
-          );
+          await secondaryBeforeMain.initialize();
 
-          await pair.initialize();
+          await secondaryBeforeMain.setPosition(const Duration(minutes: 8));
 
-          await pair.setPosition(const Duration(minutes: 8));
-
-          expect(pair.value.isPlaying, false);
-          expect(pair.mainController.value.isPlaying, false);
-          expect(pair.secondaryController.value.isPlaying, false);
+          expect(secondaryBeforeMain.value.isPlaying, false);
+          expect(secondaryBeforeMain.mainController.value.isPlaying, false);
           expect(
-              pair.mainController.value.position, const Duration(minutes: 8));
-          expect(pair.secondaryController.value.position,
+              secondaryBeforeMain.secondaryController.value.isPlaying, false);
+          expect(secondaryBeforeMain.mainController.value.position,
+              const Duration(minutes: 8));
+          expect(secondaryBeforeMain.secondaryController.value.position,
               const Duration(minutes: 9));
         });
         test('when target after both should clamp to end and stay paused',
-            () async {
-          final pair = SyncedPlayerControllerPair(
-            mainController: TestController(initialValue: uninitialized9Minutes),
-            secondaryController:
-                TestController(initialValue: uninitialized9Minutes),
-          );
+                () async {
+              await mainBeforeSecondary.initialize();
 
-          await pair.initialize();
+          await mainBeforeSecondary.setPosition(const Duration(minutes: 20));
 
-          await pair.setPosition(const Duration(minutes: 10));
-
-          expect(pair.value.isPlaying, false);
-          expect(pair.mainController.value.isPlaying, false);
-          expect(pair.secondaryController.value.isPlaying, false);
+          expect(mainBeforeSecondary.value.isPlaying, false);
+          expect(mainBeforeSecondary.mainController.value.isPlaying, false);
           expect(
-              pair.mainController.value.position, const Duration(minutes: 9));
-          expect(pair.secondaryController.value.position,
+              mainBeforeSecondary.secondaryController.value.isPlaying, false);
+          expect(mainBeforeSecondary.mainController.value.position,
+              const Duration(minutes: 9));
+          expect(mainBeforeSecondary.secondaryController.value.position,
               const Duration(minutes: 9));
         });
+
+        test(
+            'when a previously invalid target becomes valid should stay paused',
+            () async {
+          await mainBeforeSecondary.initialize();
+
+          await mainBeforeSecondary.setPosition(const Duration(minutes: 10));
+
+          expect(mainBeforeSecondary.value.isPlaying, false);
+          expect(mainBeforeSecondary.mainController.value.isPlaying, false);
+          expect(
+              mainBeforeSecondary.secondaryController.value.isPlaying, false);
+
+          await mainBeforeSecondary.setPosition(const Duration(minutes: 5));
+
+          expect(mainBeforeSecondary.value.isPlaying, false);
+          expect(mainBeforeSecondary.mainController.value.isPlaying, false);
+          expect(
+              mainBeforeSecondary.secondaryController.value.isPlaying, false);
+        });
       });
-
-      test('when target before secondary should only play main', () {});
-      test('when target before both should clamp to earliest', () {});
-      test('when target after main should only play secondary', () {});
-      test('when target after secondary should only play main', () {});
-      test('when target after both should clamp to latest', () {});
-      test(
-          'when playing and a previously invalid target becomes valid'
-          ' should resume play',
-          () {});
-
-      test('offset should be calculated relative to mainController', () {});
     });
     group('controller in pair', () {
       test('when both playing should pause', () {});
