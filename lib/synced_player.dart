@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 /// of a [GenericPlayerController].
 // Copied from video_player, and modified to be more generic
 // (w/o audio, captions, etc.)
+// TODO change duration to startPosition & endPosition
 @immutable
 class GenericPlayerValue {
   /// Constructs with the given values. Only [duration] is required. The
@@ -180,7 +181,8 @@ abstract class GenericPlayerController
 
   /// Starts playing the content.
   ///
-  /// If the content is at the end, this method starts playing from the beginning.
+  /// If the content is at the end,
+  /// this method starts playing from the beginning.
   Future<void> play();
 
   /// Pauses the content.
@@ -196,12 +198,15 @@ abstract class GenericPlayerController
   /// it will resume from the given [position].
   ///
   /// If [position] is outside of the content's valid range it will
-  /// be automatically and silently clamped.
+  /// be automatically and silently clamped, and the content will be paused.
+  ///
+  /// Unless the [position] is clamped,
+  /// the content's play/pause state will not change.
   Future<void> setPosition(Duration position);
 
   /// Sets the playback speed.
   ///
-  /// [speed] indicates a speed value with different implementations accepting
+  /// [speed] indicates a speed value, with different implementations accepting
   /// different ranges for speed values. The [speed] must be greater than 0.
   // TODO allow negative speed?
   Future<void> setPlaybackSpeed(double speed);
