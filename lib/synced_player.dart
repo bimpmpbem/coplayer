@@ -66,6 +66,7 @@ class GenericPlayerValue {
   final String? errorDescription;
 
   /// Indicates whether or not the content has been loaded and is ready to play.
+  // TODO remove and just use nullable ValueNotifier<GenericPlayerValue?> for uninitialized
   final bool isInitialized;
 
   /// Indicates whether or not the content is in an error state. If this is true
@@ -288,7 +289,7 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
     final Duration mainPosition = position;
     final Duration secondaryPosition = position - offset;
 
-    if (position >= maxPosition) {
+    if (position > maxPosition) {
       // pause
       await pause();
 
@@ -307,9 +308,12 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
       value = value.copyWith(position: maxPosition);
 
       // TODO looping?
-    } else if (position <= minPosition) {
+    } else if (position < minPosition) {
+      // pause
+      await pause();
+
+      // clamp
       await Future.wait([
-        // clamp
         _setControllerPosition(mainController, Duration.zero),
         _setControllerPosition(secondaryController, Duration.zero),
       ]);
