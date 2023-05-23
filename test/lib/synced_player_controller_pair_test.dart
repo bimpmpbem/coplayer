@@ -415,9 +415,6 @@ void main() {
 
     test('when paused and one is played, should play all', () {});
     test(
-        'when paused and one is played while ended, should play from start of ended',
-        () {});
-    test(
         'when paused and one is played while other ended, should play only one',
         () {});
 

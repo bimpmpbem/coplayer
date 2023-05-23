@@ -217,10 +217,10 @@ abstract class GenericPlayerController
   @override
   Future<void> dispose() async => super.dispose();
 
-  /// Starts playing the content.
+  /// Attempts to play the content.
   ///
-  /// If the content is at the end,
-  /// this method starts playing from the beginning.
+  /// Might be unsuccessful if an error occurred,
+  /// or if already at end of content.
   Future<void> play();
 
   /// Pauses the content.
