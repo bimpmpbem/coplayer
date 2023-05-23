@@ -55,7 +55,20 @@ void main() {
     position: Duration(seconds: 5),
   );
 
-  setUp(() {});
+  late SyncedPlayerControllerPair mainBeforeSecondary;
+  late SyncedPlayerControllerPair secondaryBeforeMain;
+  setUp(() {
+    mainBeforeSecondary = SyncedPlayerControllerPair(
+      mainController: TestController(initialValue: uninitialized9Minutes),
+      secondaryController: TestController(initialValue: uninitialized9Minutes),
+      offset: const Duration(minutes: 3),
+    );
+    secondaryBeforeMain = SyncedPlayerControllerPair(
+      mainController: TestController(initialValue: uninitialized9Minutes),
+      secondaryController: TestController(initialValue: uninitialized9Minutes),
+      offset: const Duration(minutes: -3),
+    );
+  });
 
   group('initialize', () {
     test('when all uninitialized, should initialize all', () async {
@@ -105,23 +118,6 @@ void main() {
   });
 
   group('setPosition', () {
-    late SyncedPlayerControllerPair mainBeforeSecondary;
-    late SyncedPlayerControllerPair secondaryBeforeMain;
-    setUp(() {
-      mainBeforeSecondary = SyncedPlayerControllerPair(
-        mainController: TestController(initialValue: uninitialized9Minutes),
-        secondaryController:
-            TestController(initialValue: uninitialized9Minutes),
-        offset: const Duration(minutes: 3),
-      );
-      secondaryBeforeMain = SyncedPlayerControllerPair(
-        mainController: TestController(initialValue: uninitialized9Minutes),
-        secondaryController:
-            TestController(initialValue: uninitialized9Minutes),
-        offset: const Duration(minutes: -3),
-      );
-    });
-
     test('when not initialized should do nothing', () async {
       await mainBeforeSecondary.setPosition(const Duration(minutes: 5));
       expect(mainBeforeSecondary.mainController.value, uninitialized9Minutes);
@@ -392,29 +388,84 @@ void main() {
   });
 
   group('controller updates', () {
-    test('when any position changed, should sync other positions', () {});
-    test('when position synced and valid, should not change play state', () {});
+    test('when any position changed, should sync other positions', () async {
+      await secondaryBeforeMain.initialize();
 
-    test('when playing and one is paused, should pause all', () {});
+      await secondaryBeforeMain.mainController
+          .setPosition(const Duration(minutes: 1));
+
+      expect(secondaryBeforeMain.position, const Duration(minutes: 1));
+      expect(secondaryBeforeMain.mainController.position,
+          const Duration(minutes: 1));
+      expect(secondaryBeforeMain.secondaryController.position,
+          const Duration(minutes: 4));
+
+      await secondaryBeforeMain.secondaryController
+          .setPosition(const Duration(minutes: 5));
+
+      expect(secondaryBeforeMain.position, const Duration(minutes: 2));
+      expect(secondaryBeforeMain.mainController.position,
+          const Duration(minutes: 2));
+      expect(secondaryBeforeMain.secondaryController.position,
+          const Duration(minutes: 5));
+    });
+    test('when position synced and valid, should not change play state',
+        () async {
+      await secondaryBeforeMain.initialize();
+
+      await secondaryBeforeMain.mainController
+          .setPosition(const Duration(minutes: 1));
+
+      expect(secondaryBeforeMain.value.isPlaying, false);
+      expect(secondaryBeforeMain.mainController.value.isPlaying, false);
+      expect(secondaryBeforeMain.secondaryController.value.isPlaying, false);
+
+      await secondaryBeforeMain.play();
+      await secondaryBeforeMain.secondaryController
+          .setPosition(const Duration(minutes: 5));
+
+      expect(secondaryBeforeMain.value.isPlaying, true);
+      expect(secondaryBeforeMain.mainController.value.isPlaying, true);
+      expect(secondaryBeforeMain.secondaryController.value.isPlaying, true);
+    });
+
+    test('when playing and one is paused, should pause all', () async {
+      await secondaryBeforeMain.initialize();
+      await secondaryBeforeMain.setPosition(const Duration(minutes: 0));
+
+      await secondaryBeforeMain.play();
+      await secondaryBeforeMain.mainController.pause();
+
+      expect(secondaryBeforeMain.value.isPlaying, false);
+      expect(secondaryBeforeMain.secondaryController.value.isPlaying, false);
+
+      await secondaryBeforeMain.play();
+      await secondaryBeforeMain.secondaryController.pause();
+
+      expect(secondaryBeforeMain.value.isPlaying, false);
+      expect(secondaryBeforeMain.mainController.value.isPlaying, false);
+    });
     test('when playing and one is buffering, should pause rest temporarily',
-        () {});
+        () async {});
 
-    test('when paused and one is played, should play all', () {});
+    test('when paused and one is played, should play all', () async {});
     test(
         'when paused and one is played while other ended, should play only one',
-        () {});
+        () async {});
 
-    test('when playing and one reaches end, other should keep playing', () {});
-    test('when reached end of both controllers, should pause', () {});
+    test('when playing and one reaches end, other should keep playing',
+        () async {});
+    test('when reached end of both controllers, should pause', () async {});
 
     test('when start/end position of controller changes, should update pair',
-        () {});
+        () async {});
 
     test(
         'when both controllers are initialized, '
         'should set pair as initialized regardless of calls to initialize()',
-        () {});
+        () async {});
 
-    test('when any playback speed changed, should sync all speeds', () {});
+    test(
+        'when any playback speed changed, should sync all speeds', () async {});
   });
 }
