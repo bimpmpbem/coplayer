@@ -81,17 +81,6 @@ void main() {
       expect(pair.mainController.value, initialized2Minutes);
       expect(pair.secondaryController.value, initialized9Minutes);
     });
-    test('when controllers initialized, should automatically be initialized',
-        () async {
-      final pair = SyncedPlayerControllerPair(
-        mainController: TestController(initialValue: initialized2Minutes),
-        secondaryController: TestController(initialValue: initialized9Minutes),
-      );
-
-      expect(pair.value.isInitialized, true);
-      expect(pair.mainController.value, initialized2Minutes);
-      expect(pair.secondaryController.value, initialized9Minutes);
-    });
     test('when one controller initialized, should initialize the other',
         () async {
       final pair1 = SyncedPlayerControllerPair(
