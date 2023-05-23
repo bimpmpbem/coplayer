@@ -153,7 +153,7 @@ void main() {
     });
 
     test(
-        'values that are cause both controllers to clamp & pause, should get clamped and pause pair',
+        'values that cause both controllers to clamp & pause, should get clamped, and pause pair',
         () async {
       await mainBeforeSecondary.initialize();
 
