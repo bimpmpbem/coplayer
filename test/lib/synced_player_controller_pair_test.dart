@@ -153,19 +153,41 @@ void main() {
     });
 
     test(
-        'values that are too low or too high in both controllers, should get clamped and pause pair',
+        'values that are cause both controllers to clamp & pause, should get clamped and pause pair',
         () async {
       await mainBeforeSecondary.initialize();
 
+      // playing too high
       await mainBeforeSecondary.play();
       await mainBeforeSecondary.setPosition(const Duration(minutes: 50));
+
+      // simulated clamping
+      await mainBeforeSecondary.mainController
+          .setPosition(const Duration(minutes: 9));
+      await mainBeforeSecondary.secondaryController
+          .setPosition(const Duration(minutes: 9));
+      // simulated pausing
+      await mainBeforeSecondary.mainController.pause();
+      await mainBeforeSecondary.secondaryController.pause();
+
       expect(mainBeforeSecondary.value.position, const Duration(minutes: 12));
       expect(mainBeforeSecondary.value.isPlaying, false);
       expect(mainBeforeSecondary.mainController.value.isPlaying, false);
       expect(mainBeforeSecondary.secondaryController.value.isPlaying, false);
 
+      // playing too low
       await mainBeforeSecondary.play();
       await mainBeforeSecondary.setPosition(const Duration(minutes: -50));
+
+      // simulated clamping
+      await mainBeforeSecondary.mainController
+          .setPosition(const Duration(minutes: 0));
+      await mainBeforeSecondary.secondaryController
+          .setPosition(const Duration(minutes: 0));
+      // simulated pausing
+      await mainBeforeSecondary.mainController.pause();
+      await mainBeforeSecondary.secondaryController.pause();
+
       expect(mainBeforeSecondary.value.position, const Duration(minutes: 0));
       expect(mainBeforeSecondary.value.isPlaying, false);
       expect(mainBeforeSecondary.mainController.value.isPlaying, false);
