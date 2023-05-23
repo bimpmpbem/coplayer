@@ -2,17 +2,18 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
-/// The duration, current position, buffering state, error state and settings
+/// The start/end/current position, buffering state, error state and settings
 /// of a [GenericPlayerController].
 // Copied from video_player, and modified to be more generic
 // (w/o audio, captions, etc.)
-// TODO change duration to startPosition & endPosition
 @immutable
 class GenericPlayerValue {
-  /// Constructs with the given values. Only [duration] is required. The
-  /// rest will initialize with default values when unset.
+  /// Constructs with the given values.
+  /// Only [startPosition] and [endPosition] is required.
+  /// The rest will initialize with default values when unset.
   const GenericPlayerValue({
-    required this.duration,
+    this.startPosition = Duration.zero,
+    required this.endPosition,
     this.position = Duration.zero,
     this.isInitialized = false,
     this.isPlaying = false,
@@ -24,12 +25,16 @@ class GenericPlayerValue {
 
   /// Returns an instance for content that hasn't been loaded.
   const GenericPlayerValue.uninitialized()
-      : this(duration: Duration.zero, isInitialized: false);
+      : this(
+            startPosition: Duration.zero,
+            endPosition: Duration.zero,
+            isInitialized: false);
 
   /// Returns an instance with the given [errorDescription].
   const GenericPlayerValue.erroneous(String errorDescription)
       : this(
-            duration: Duration.zero,
+            startPosition: Duration.zero,
+            endPosition: Duration.zero,
             isInitialized: false,
             errorDescription: errorDescription);
 
@@ -37,15 +42,42 @@ class GenericPlayerValue {
   /// workaround for this issue https://github.com/dart-lang/language/issues/2009
   static const String _defaultErrorDescription = 'defaultErrorDescription';
 
-  /// The current total duration of the content.
+  /// The current lowest point in time of the content.
   ///
-  /// The duration is [Duration.zero] if the content hasn't been initialized.
+  /// The [startPosition] is [Duration.zero]
+  /// if the content hasn't been initialized.
   ///
-  /// Note that the duration is not necessarily constant and
+  /// Note that the [startPosition] is not necessarily constant and
   /// might change during the life of the content (for example, livestreams)
-  final Duration duration;
+  final Duration startPosition;
+
+  /// The current highest point in time of the content.
+  ///
+  /// The [endPosition] is [Duration.zero]
+  /// if the content hasn't been initialized.
+  ///
+  /// Note that the [endPosition] is not necessarily constant and
+  /// might change during the life of the content (for example, livestreams)
+  final Duration endPosition;
+
+  /// The current duration of the content.
+  ///
+  /// The [duration] is [Duration.zero]
+  /// if the content hasn't been initialized.
+  ///
+  /// Note that the [duration] is not necessarily constant and
+  /// might change during the life of the content (for example, livestreams)
+  Duration get duration => endPosition - startPosition;
+
+  /// True if the current [position] is at [startPosition]
+  bool get atStart => position == startPosition;
+
+  /// True if the current [position] is at [endPosition]
+  bool get atEnd => position == endPosition;
 
   /// The current playback position.
+  ///
+  /// Always between [startPosition] and [endPosition].
   final Duration position;
 
   /// True if the content is playing. False if it's paused.
@@ -76,7 +108,8 @@ class GenericPlayerValue {
   /// Returns a new instance that has the same values as this current instance,
   /// except for any overrides passed in as arguments to [copyWith].
   GenericPlayerValue copyWith({
-    Duration? duration,
+    Duration? startPosition,
+    Duration? endPosition,
     Duration? syncOffset,
     Duration? position,
     bool? isInitialized,
@@ -88,7 +121,8 @@ class GenericPlayerValue {
     String? errorDescription = _defaultErrorDescription,
   }) {
     return GenericPlayerValue(
-      duration: duration ?? this.duration,
+      startPosition: startPosition ?? this.startPosition,
+      endPosition: endPosition ?? this.endPosition,
       position: position ?? this.position,
       isInitialized: isInitialized ?? this.isInitialized,
       isPlaying: isPlaying ?? this.isPlaying,
@@ -104,7 +138,8 @@ class GenericPlayerValue {
   @override
   String toString() {
     return '${objectRuntimeType(this, 'VideoPlayerValue')}('
-        'duration: $duration, '
+        'startPosition: $startPosition, '
+        'endPosition: $endPosition, '
         'position: $position, '
         'isInitialized: $isInitialized, '
         'isPlaying: $isPlaying, '
@@ -117,9 +152,10 @@ class GenericPlayerValue {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is GenericPlayerValue &&
+          other is GenericPlayerValue &&
           runtimeType == other.runtimeType &&
-          duration == other.duration &&
+          startPosition == other.startPosition &&
+          endPosition == other.endPosition &&
           position == other.position &&
           isPlaying == other.isPlaying &&
           isLooping == other.isLooping &&
@@ -130,7 +166,8 @@ class GenericPlayerValue {
 
   @override
   int get hashCode => Object.hash(
-        duration,
+        startPosition,
+        endPosition,
         position,
         isPlaying,
         isLooping,
@@ -163,8 +200,7 @@ abstract class GenericPlayerController
     extends ValueNotifier<GenericPlayerValue> {
   GenericPlayerController({
     this.obstructionBehavior = ObstructionBehavior.none,
-    Duration initialDuration = Duration.zero,
-  }) : super(GenericPlayerValue(duration: initialDuration));
+  }) : super(const GenericPlayerValue.uninitialized());
 
   /// Specifies how playback should change when there is some interruption
   /// to the user.
@@ -221,7 +257,8 @@ abstract class GenericPlayerController
 ///
 /// The pair will end playback once the last controller has ended playback.
 ///
-/// The total duration will be the largest duration + offset of the controllers.
+/// The pair's startPosition will be the smallest of the controller's
+/// startPosition, and the endPosition will be the largest endPosition.
 // TODO extend dartx Pair?
 class SyncedPlayerControllerPair extends GenericPlayerController {
   SyncedPlayerControllerPair({
@@ -280,15 +317,17 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
     if (!value.isInitialized) return;
 
     final Duration maxPosition = Duration(
-        microseconds: max(mainController.value.duration.inMicroseconds,
-            (secondaryController.value.duration + offset).inMicroseconds));
+        microseconds: max(mainController.value.endPosition.inMicroseconds,
+            (secondaryController.value.endPosition + offset).inMicroseconds));
 
-    final Duration minPosition =
-        Duration(microseconds: min(0, offset.inMicroseconds));
+    final Duration minPosition = Duration(
+        microseconds: min(mainController.value.startPosition.inMicroseconds,
+            (secondaryController.value.startPosition + offset).inMicroseconds));
 
     final Duration mainPosition = position;
     final Duration secondaryPosition = position - offset;
 
+    // TODO should probably only clamp, and pause if both controllers decide to pause
     if (position > maxPosition) {
       // pause
       await pause();
@@ -297,11 +336,11 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
       await Future.wait([
         _setControllerPosition(
           mainController,
-          mainController.value.duration,
+          mainController.value.endPosition,
         ),
         _setControllerPosition(
           secondaryController,
-          secondaryController.value.duration,
+          secondaryController.value.endPosition,
         ),
       ]);
 
@@ -314,8 +353,14 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
 
       // clamp
       await Future.wait([
-        _setControllerPosition(mainController, Duration.zero),
-        _setControllerPosition(secondaryController, Duration.zero),
+        _setControllerPosition(
+          mainController,
+          mainController.value.startPosition,
+        ),
+        _setControllerPosition(
+          secondaryController,
+          secondaryController.value.startPosition,
+        ),
       ]);
 
       value = value.copyWith(position: minPosition);
@@ -329,12 +374,13 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
     }
   }
 
+  // TODO the controllers should probably be in charge of their own clamping behavior
   Future<void> _setControllerPosition(
       GenericPlayerController controller, Duration position) {
-    if (position > controller.value.duration) {
+    if (position > controller.value.endPosition) {
       return controller
           .pause()
-          .then((_) => controller.setPosition(controller.value.duration));
+          .then((_) => controller.setPosition(controller.value.endPosition));
     } else if (position < Duration.zero) {
       return controller
           .pause()

@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 class TestController extends GenericPlayerController {
   TestController({
     GenericPlayerValue initialValue =
-        const GenericPlayerValue(duration: Duration.zero),
+        const GenericPlayerValue(endPosition: Duration.zero),
   }) : super() {
     value = initialValue;
   }
@@ -35,21 +35,21 @@ void main() {
   // test('', () {});
 
   const uninitialized2Minutes =
-      GenericPlayerValue(duration: Duration(minutes: 2));
+      GenericPlayerValue(endPosition: Duration(minutes: 2));
   const uninitialized9Minutes =
-      GenericPlayerValue(duration: Duration(minutes: 9));
-  const initialized2Minutes =
-      GenericPlayerValue(duration: Duration(minutes: 2), isInitialized: true);
-  const initialized9Minutes =
-      GenericPlayerValue(duration: Duration(minutes: 9), isInitialized: true);
+      GenericPlayerValue(endPosition: Duration(minutes: 9));
+  const initialized2Minutes = GenericPlayerValue(
+      endPosition: Duration(minutes: 2), isInitialized: true);
+  const initialized9Minutes = GenericPlayerValue(
+      endPosition: Duration(minutes: 9), isInitialized: true);
   const playing2Minutes = GenericPlayerValue(
-    duration: Duration(minutes: 2),
+    endPosition: Duration(minutes: 2),
     isInitialized: true,
     isPlaying: true,
     position: Duration(seconds: 1),
   );
   const playing9Minutes = GenericPlayerValue(
-    duration: Duration(minutes: 9),
+    endPosition: Duration(minutes: 9),
     isInitialized: true,
     isPlaying: true,
     position: Duration(seconds: 5),
