@@ -322,9 +322,56 @@ void main() {
       expect(pair.mainController.value.isPlaying, true);
       expect(pair.secondaryController.value.isPlaying, true);
     });
-    test('when one has invalid position should play only valid', () {});
-    test('when both already playing should do nothing', () {});
-    test('when one already playing should play the other', () {});
+    test('when one has invalid position should play only valid', () async {
+      final pair = SyncedPlayerControllerPair(
+        mainController: TestController(initialValue: initialized9Minutes),
+        secondaryController: TestController(initialValue: initialized2Minutes),
+      );
+
+      await pair.initialize();
+      await pair.setPosition(const Duration(minutes: 3));
+      await pair.play();
+
+      expect(pair.value.isPlaying, true);
+      expect(pair.mainController.value.isPlaying, true);
+      expect(pair.secondaryController.value.isPlaying, false);
+    });
+    test('when both already playing should not break', () async {
+      final pair = SyncedPlayerControllerPair(
+        mainController: TestController(initialValue: playing9Minutes),
+        secondaryController: TestController(initialValue: playing9Minutes),
+      );
+
+      await pair.initialize();
+      await pair.play();
+
+      expect(pair.value.isPlaying, true);
+      expect(pair.mainController.value.isPlaying, true);
+      expect(pair.secondaryController.value.isPlaying, true);
+    });
+    test('when one already playing should play the other, and sync to playing',
+        () async {
+      // TODO this might be an invalid state
+      final main = TestController(initialValue: playing9Minutes);
+      final secondary = TestController(initialValue: initialized9Minutes);
+      main.setPosition(const Duration(minutes: 5));
+      main.play();
+
+      final pair = SyncedPlayerControllerPair(
+        mainController: main,
+        secondaryController: secondary,
+        offset: const Duration(minutes: 3),
+      );
+
+      await pair.initialize();
+      await pair.play();
+
+      expect(pair.value.isPlaying, true);
+      expect(pair.mainController.value.isPlaying, true);
+      expect(pair.secondaryController.value.isPlaying, false);
+      expect(
+          pair.secondaryController.value.position, const Duration(minutes: 8));
+    });
   });
   group('pause', () {
     test('when not initialized should do nothing', () async {
