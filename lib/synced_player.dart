@@ -349,7 +349,7 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
     if (mainController.value.isPlaying) {
       // sync to main if playing
       final position = (await mainController.position)!;
-      await secondaryController.setPosition(position);
+      await secondaryController.setPosition(position - offset);
       value = value.copyWith(position: position);
     } else if (secondaryController.value.isPlaying) {
       // sync to secondary if playing
