@@ -153,7 +153,7 @@ class GenericPlayerValue {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-          other is GenericPlayerValue &&
+      other is GenericPlayerValue &&
           runtimeType == other.runtimeType &&
           startPosition == other.startPosition &&
           endPosition == other.endPosition &&
@@ -229,6 +229,7 @@ abstract class GenericPlayerController
   /// Gets the content's position as a [Duration] from the start.
   ///
   /// Will return null if not initialized.
+  // TODO just use value.position?
   Future<Duration?> get position;
 
   /// Sets the content's current [position].
@@ -344,6 +345,27 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
   Future<void> play() async {
     if (!value.isInitialized) return;
 
+    // sync
+    if (mainController.value.isPlaying) {
+      // sync to main if playing
+      final position = (await mainController.position)!;
+      await secondaryController.setPosition(position);
+      value = value.copyWith(position: position);
+    } else if (secondaryController.value.isPlaying) {
+      // sync to secondary if playing
+      final position = (await secondaryController.position)!;
+      await mainController.setPosition(position + offset);
+      value = value.copyWith(position: position);
+    } else {
+      // sync to pair if not playing
+      final position = (await this.position)!;
+      await Future.wait([
+        mainController.setPosition(position),
+        secondaryController.setPosition(position - offset),
+      ]);
+    }
+
+    // try playing
     await Future.wait([
       mainController.play(),
       secondaryController.play(),
@@ -366,7 +388,7 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
 
   @override
   // TODO: implement position
-  Future<Duration?> get position => throw UnimplementedError();
+  Future<Duration?> get position async => value.position;
 
   @override
   Future<void> setPlaybackSpeed(double speed) async {
