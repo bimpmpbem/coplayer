@@ -321,8 +321,8 @@ void main() {
       // TODO this might be an invalid state
       final main = TestController(initialValue: playing9Minutes);
       final secondary = TestController(initialValue: initialized9Minutes);
-      main.setPosition(const Duration(minutes: 5));
-      main.play();
+      await main.setPosition(const Duration(minutes: 5));
+      await main.play();
 
       final pair = SyncedPlayerControllerPair(
         mainController: main,
@@ -335,9 +335,9 @@ void main() {
 
       expect(pair.value.isPlaying, true);
       expect(pair.mainController.value.isPlaying, true);
-      expect(pair.secondaryController.value.isPlaying, false);
+      expect(pair.secondaryController.value.isPlaying, true);
       expect(
-          pair.secondaryController.value.position, const Duration(minutes: 8));
+          pair.secondaryController.value.position, const Duration(minutes: 2));
     });
   });
   group('pause', () {
