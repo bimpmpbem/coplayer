@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:dartx/dartx.dart';
 import 'package:flutter/foundation.dart';
 
 /// The start/end/current position, buffering state, error state and settings
@@ -324,76 +325,19 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
         microseconds: min(mainController.value.startPosition.inMicroseconds,
             (secondaryController.value.startPosition + offset).inMicroseconds));
 
-    final Duration mainPosition = position;
-    final Duration secondaryPosition = position - offset;
+    final clampedPosition = position.clamp(min: minPosition, max: maxPosition);
 
-    // TODO should probably only clamp, and pause if both controllers decide to pause
-    if (position > maxPosition) {
-      // pause
-      await pause();
+    final Duration mainPosition = clampedPosition;
+    final Duration secondaryPosition = clampedPosition - offset;
 
-      // clamp
-      await Future.wait([
-        _setControllerPosition(
-          mainController,
-          mainController.value.endPosition,
-        ),
-        _setControllerPosition(
-          secondaryController,
-          secondaryController.value.endPosition,
-        ),
-      ]);
+    // set position (and possibly clamp/pause)
+    await Future.wait([
+      mainController.setPosition(mainPosition),
+      secondaryController.setPosition(secondaryPosition),
+    ]);
 
-      value = value.copyWith(position: maxPosition);
-
-      // TODO looping?
-    } else if (position < minPosition) {
-      // pause
-      await pause();
-
-      // clamp
-      await Future.wait([
-        _setControllerPosition(
-          mainController,
-          mainController.value.startPosition,
-        ),
-        _setControllerPosition(
-          secondaryController,
-          secondaryController.value.startPosition,
-        ),
-      ]);
-
-      value = value.copyWith(position: minPosition);
-    } else {
-      await Future.wait([
-        _setControllerPosition(mainController, mainPosition),
-        _setControllerPosition(secondaryController, secondaryPosition),
-      ]);
-
-      value = value.copyWith(position: position);
-    }
-  }
-
-  // TODO the controllers should probably be in charge of their own clamping behavior
-  Future<void> _setControllerPosition(
-      GenericPlayerController controller, Duration position) {
-    if (position > controller.value.endPosition) {
-      return controller
-          .pause()
-          .then((_) => controller.setPosition(controller.value.endPosition));
-    } else if (position < Duration.zero) {
-      return controller
-          .pause()
-          .then((_) => controller.setPosition(Duration.zero));
-    } else {
-      return controller.setPosition(position).then((_) {
-        if (value.isPlaying) {
-          controller.play();
-        } else {
-          controller.pause();
-        }
-      });
-    }
+    // update
+    value = value.copyWith(position: clampedPosition);
   }
 
   @override
