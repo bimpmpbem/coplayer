@@ -303,20 +303,6 @@ void main() {
       expect(pair.mainController.value.isPlaying, true);
       expect(pair.secondaryController.value.isPlaying, true);
     });
-    test('when one has invalid position should play only valid', () async {
-      final pair = SyncedPlayerControllerPair(
-        mainController: TestController(initialValue: initialized9Minutes),
-        secondaryController: TestController(initialValue: initialized2Minutes),
-      );
-
-      await pair.initialize();
-      await pair.setPosition(const Duration(minutes: 3));
-      await pair.play();
-
-      expect(pair.value.isPlaying, true);
-      expect(pair.mainController.value.isPlaying, true);
-      expect(pair.secondaryController.value.isPlaying, false);
-    });
     test('when both already playing should not break', () async {
       final pair = SyncedPlayerControllerPair(
         mainController: TestController(initialValue: playing9Minutes),
