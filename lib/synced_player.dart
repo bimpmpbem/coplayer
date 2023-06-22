@@ -383,6 +383,20 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
     super.dispose();
   }
 
+  /// Calls [dispose] on this object as well as on
+  /// [mainController] and [secondaryController].
+  ///
+  /// After this is called, the object and it's children are not in a
+  /// usable state and should be discarded.
+  Future<void> disposeAll() async {
+    await Future.wait([
+      mainController.dispose(),
+      secondaryController.dispose(),
+    ]);
+
+    await dispose();
+  }
+
   void _mainListener() {
     debugPrint('${DateTime.now()}: mainController update');
     final position = mainController.value.position;
