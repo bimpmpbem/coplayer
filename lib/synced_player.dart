@@ -376,6 +376,8 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
 
   @override
   Future<void> dispose() async {
+    if (_disposed) return;
+
     mainController.removeListener(_mainListener);
     secondaryController.removeListener(_secondaryListener);
     _disposed = true;
