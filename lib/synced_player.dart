@@ -316,6 +316,10 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
   /// out of sync.
   final Duration marginOfError;
 
+  late SavedPosition _mainPosition;
+  late SavedPosition _secondaryPosition;
+  bool _ignoreListeners = false;
+
   @override
   Future<void> initialize() async {
     if (mainController.value.isInitialized == false) {
@@ -325,16 +329,157 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
       await secondaryController.initialize();
     }
 
-    value = value.copyWith(isInitialized: true);
+    _mainPosition =
+        SavedPosition(DateTime.now(), mainController.value.position);
+    _secondaryPosition =
+        SavedPosition(DateTime.now(), secondaryController.value.position);
 
-    // TODO register listeners
+    mainController.addListener(_mainListener);
+    secondaryController.addListener(_secondaryListener);
+
+    value = value.copyWith(
+      isInitialized: true,
+      playbackSpeed: mainController.value.playbackSpeed,
+      isBuffering: mainController.value.isBuffering ||
+          secondaryController.value.isBuffering,
+      position: mainController.value.position,
+      isPlaying: mainController.value.isPlaying,
+    );
+
+    // initial sync:
+    //  play/pause
+    if (mainController.value.isPlaying) {
+      await secondaryController.play();
+    } else {
+      await secondaryController.pause();
+    }
+    //  buffering
+    if (mainController.value.isBuffering) {
+      await secondaryController.pause();
+    } else if (secondaryController.value.isBuffering) {
+      await mainController.pause();
+    }
+    //  position
+    await secondaryController
+        .setPosition((mainController.value.position - offset).clamp(
+      min: secondaryController.value.startPosition,
+      max: secondaryController.value.endPosition,
+    ));
+    //  speed
+    await secondaryController
+        .setPlaybackSpeed(mainController.value.playbackSpeed);
   }
 
   @override
   Future<void> dispose() async {
-    // TODO: implement dispose
-    throw UnimplementedError();
+    mainController.removeListener(_mainListener);
+    secondaryController.removeListener(_secondaryListener);
+    _ignoreListeners = true;
+
     super.dispose();
+  }
+
+  void _mainListener() {
+    debugPrint('${DateTime.now()}: mainController update');
+    final position = mainController.value.position;
+    if (position != _mainPosition.position) {
+      _mainPosition = SavedPosition(DateTime.now(), position);
+    }
+    _controllerListener(
+      updated: mainController,
+      other: secondaryController,
+      updatedPosition: _mainPosition,
+      otherPosition: _secondaryPosition,
+      otherOffset: offset,
+    );
+  }
+
+  void _secondaryListener() {
+    debugPrint('${DateTime.now()}: secondaryController update');
+    final position = secondaryController.value.position;
+    if (position != _secondaryPosition.position) {
+      _secondaryPosition = SavedPosition(DateTime.now(), position);
+    }
+
+    _controllerListener(
+      updated: secondaryController,
+      other: mainController,
+      updatedPosition: _secondaryPosition,
+      otherPosition: _mainPosition,
+      otherOffset: -offset,
+    );
+  }
+
+  // TODO this can probably be done better
+  Future<void> _controllerListener({
+    required GenericPlayerController updated,
+    required GenericPlayerController other,
+    required SavedPosition updatedPosition,
+    required SavedPosition otherPosition,
+    required Duration otherOffset,
+  }) async {
+    if (_ignoreListeners) return;
+
+    final updatedTarget = updatedPosition.estimateNow();
+    final otherTarget = updatedTarget - otherOffset;
+
+    final updatedShouldBePlaying = value.isPlaying &&
+        !(updatedTarget < updated.value.startPosition ||
+            updatedTarget > updated.value.endPosition ||
+            other.value.isBuffering);
+
+    var nextValue = value.copyWith();
+
+    // sync play state
+    // if paused when it should be playing, pause all
+    if (!updated.value.isPlaying && updatedShouldBePlaying) {
+      debugPrint('controller paused, pausing all');
+      await other.pause();
+      nextValue = nextValue.copyWith(isPlaying: false);
+    }
+    // playing when previously paused
+    else if (updated.value.isPlaying && !value.isPlaying) {
+      if (other.value.isBuffering) {
+        debugPrint(
+            'controller played, but other is buffering. re-pausing controller');
+        await updated.pause(); // wait for other
+      } else {
+        debugPrint('controller played, playing all');
+        await other.play();
+        nextValue = nextValue.copyWith(isPlaying: true);
+      }
+    }
+
+    // sync buffer state
+    // if started buffering, pause other & update
+    if (updated.value.isBuffering && !value.isBuffering) {
+      debugPrint('something started buffering, pausing other');
+      await other.pause();
+      nextValue = nextValue.copyWith(isBuffering: true);
+    }
+    // if stopped buffering and trying to play, resume playback
+    else if (value.isBuffering &&
+        value.isPlaying &&
+        !(updated.value.isBuffering || other.value.isBuffering)) {
+      debugPrint('something stopped buffering, playing all');
+      // await play();
+      await other.play();
+      nextValue = nextValue.copyWith(isBuffering: false);
+    }
+
+    // sync positions
+    final otherError = (otherPosition.estimateNow() - otherTarget).abs();
+    final otherTargetInRange = otherTarget <= other.value.endPosition &&
+        otherTarget >= other.value.startPosition;
+    if (otherTargetInRange && otherError > marginOfError) {
+      debugPrint(
+          'controller position too different (Δ$otherError), syncing other.');
+      await other.setPosition(otherTarget);
+      nextValue = nextValue.copyWith(
+          position: updated == mainController ? updatedTarget : otherTarget);
+    }
+
+    value = nextValue;
   }
 
   @override
@@ -364,6 +509,7 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
     value = value.copyWith(position: clampedPosition);
   }
 
+  // NOTE: should not be called from within this class, can cause problems
   @override
   Future<void> play() async {
     if (!value.isInitialized) return;
@@ -397,6 +543,7 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
     value = value.copyWith(isPlaying: true);
   }
 
+  // NOTE: should not be called from within this class, can cause problems
   @override
   Future<void> pause() async {
     if (!value.isInitialized) return;
