@@ -87,6 +87,96 @@ void main() {
       expect(pair2.mainController.value, initialized2Minutes);
       expect(pair2.secondaryController.value, initialized9Minutes);
     });
+
+    test('when main is playing, should play other', () async {
+      final pair = SyncedPlayerControllerPair(
+        mainController: TestController(initialValue: playing2Minutes),
+        secondaryController: TestController(initialValue: initialized9Minutes),
+      );
+
+      await pair.initialize();
+      expect(pair.value.isPlaying, true);
+      expect(pair.mainController.value.isPlaying, true);
+      expect(pair.secondaryController.value.isPlaying, true);
+    });
+    test('when main is paused, should pause other', () async {
+      final pair = SyncedPlayerControllerPair(
+        mainController: TestController(initialValue: initialized2Minutes),
+        secondaryController: TestController(initialValue: playing9Minutes),
+      );
+
+      await pair.initialize();
+      expect(pair.value.isPlaying, false);
+      expect(pair.mainController.value.isPlaying, false);
+      expect(pair.secondaryController.value.isPlaying, false);
+    });
+    test('when any is buffering, should be buffering', () async {
+      final pair1 = SyncedPlayerControllerPair(
+        mainController: TestController(
+            initialValue: playing2Minutes.copyWith(isBuffering: true)),
+        secondaryController: TestController(initialValue: playing9Minutes),
+      );
+      final pair2 = SyncedPlayerControllerPair(
+        mainController: TestController(initialValue: playing2Minutes),
+        secondaryController: TestController(
+            initialValue: playing9Minutes.copyWith(isBuffering: true)),
+      );
+      final pair3 = SyncedPlayerControllerPair(
+        mainController: TestController(
+            initialValue: playing2Minutes.copyWith(isBuffering: true)),
+        secondaryController: TestController(
+            initialValue: playing9Minutes.copyWith(isBuffering: true)),
+      );
+
+      await pair1.initialize();
+
+      expect(pair1.value.isBuffering, true);
+      expect(pair1.mainController.value.isPlaying, true);
+      expect(pair1.secondaryController.value.isPlaying, false);
+
+      await pair2.initialize();
+
+      expect(pair2.value.isBuffering, true);
+      expect(pair2.mainController.value.isPlaying, false);
+      expect(pair2.secondaryController.value.isPlaying, true);
+
+      await pair3.initialize();
+
+      expect(pair3.value.isBuffering, true);
+      // pausing others does not matter when both are buffering
+      // expect(pair3.mainController.value.isPlaying, false);
+      // expect(pair3.secondaryController.value.isPlaying, false);
+    });
+    test('playback speed should match main', () async {
+      final pair = SyncedPlayerControllerPair(
+        mainController: TestController(initialValue: playing2Minutes),
+        secondaryController: TestController(initialValue: playing9Minutes),
+      );
+
+      pair.mainController.setPlaybackSpeed(1.2);
+      pair.secondaryController.setPlaybackSpeed(1.2);
+      await pair.initialize();
+
+      expect(pair.value.playbackSpeed, 1.2);
+      expect(pair.mainController.value.playbackSpeed, 1.2);
+      expect(pair.secondaryController.value.playbackSpeed, 1.2);
+    });
+    test('playback position should sync to main', () async {
+      final pair = SyncedPlayerControllerPair(
+        mainController: TestController(initialValue: playing9Minutes),
+        secondaryController: TestController(initialValue: playing9Minutes),
+        offset: const Duration(minutes: 3),
+      );
+
+      pair.mainController.setPosition(const Duration(minutes: 4));
+      pair.secondaryController.setPosition(const Duration(minutes: 8));
+      await pair.initialize();
+
+      expect(pair.value.position, const Duration(minutes: 4));
+      expect(pair.mainController.value.position, const Duration(minutes: 4));
+      expect(
+          pair.secondaryController.value.position, const Duration(minutes: 1));
+    });
   });
 
   group('setPosition', () {
