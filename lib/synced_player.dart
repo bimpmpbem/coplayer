@@ -50,6 +50,7 @@ class GenericPlayerValue {
   ///
   /// Note that the [startPosition] is not necessarily constant and
   /// might change during the life of the content (for example, livestreams)
+  // TODO rename to firstPosition?
   final Duration startPosition;
 
   /// The current highest point in time of the content.
@@ -59,6 +60,7 @@ class GenericPlayerValue {
   ///
   /// Note that the [endPosition] is not necessarily constant and
   /// might change during the life of the content (for example, livestreams)
+  // TODO rename to lastPosition?
   final Duration endPosition;
 
   /// The current duration of the content.
@@ -81,16 +83,26 @@ class GenericPlayerValue {
   /// Always between [startPosition] and [endPosition].
   final Duration position;
 
-  /// True if the content is playing. False if it's paused.
+  /// True if the content is playing, and [position] might change over time.
+  /// Does not imply anything about [playbackSpeed], or [isBuffering] state.
+  ///
+  /// False if it's paused, and [position] will not update unless
+  /// manually changed.
   final bool isPlaying;
 
   /// True if the content is looping.
+  // TODO remove?
   final bool isLooping;
 
   /// True if the content is currently buffering.
+  ///
+  /// Does not necessarily mean content is paused.
   final bool isBuffering;
 
-  /// The current speed of the playback.
+  /// The current speed of the playback,
+  /// where 0 means no progress, and 1 means normal/default playback.
+  ///
+  /// Different values support (<0, 0->1, >1) depend on implementation.
   final double playbackSpeed;
 
   /// A description of the error if present.
