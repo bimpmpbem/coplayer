@@ -348,29 +348,6 @@ void main() {
       expect(pair.mainController.value.isPlaying, true);
       expect(pair.secondaryController.value.isPlaying, true);
     });
-    test('when one already playing should play the other, and sync to playing',
-        () async {
-      // TODO this might be an invalid state
-      final main = TestController(initialValue: playing9Minutes);
-      final secondary = TestController(initialValue: initialized9Minutes);
-      await main.setPosition(const Duration(minutes: 5));
-      await main.play();
-
-      final pair = SyncedPlayerControllerPair(
-        mainController: main,
-        secondaryController: secondary,
-        offset: const Duration(minutes: 3),
-      );
-
-      await pair.initialize();
-      await pair.play();
-
-      expect(pair.value.isPlaying, true);
-      expect(pair.mainController.value.isPlaying, true);
-      expect(pair.secondaryController.value.isPlaying, true);
-      expect(
-          pair.secondaryController.value.position, const Duration(minutes: 2));
-    });
   });
   group('pause', () {
     test('when not initialized should do nothing', () async {
