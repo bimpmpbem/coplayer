@@ -366,19 +366,19 @@ void main() {
       await secondaryBeforeMain.mainController
           .setPosition(const Duration(minutes: 1));
 
-      expect(secondaryBeforeMain.position, const Duration(minutes: 1));
-      expect(secondaryBeforeMain.mainController.position,
+      expect(secondaryBeforeMain.value.position, const Duration(minutes: 1));
+      expect(secondaryBeforeMain.mainController.value.position,
           const Duration(minutes: 1));
-      expect(secondaryBeforeMain.secondaryController.position,
+      expect(secondaryBeforeMain.secondaryController.value.position,
           const Duration(minutes: 4));
 
       await secondaryBeforeMain.secondaryController
           .setPosition(const Duration(minutes: 5));
 
-      expect(secondaryBeforeMain.position, const Duration(minutes: 2));
-      expect(secondaryBeforeMain.mainController.position,
+      expect(secondaryBeforeMain.value.position, const Duration(minutes: 2));
+      expect(secondaryBeforeMain.mainController.value.position,
           const Duration(minutes: 2));
-      expect(secondaryBeforeMain.secondaryController.position,
+      expect(secondaryBeforeMain.secondaryController.value.position,
           const Duration(minutes: 5));
     });
     test('when position synced and valid, should not change play state',
