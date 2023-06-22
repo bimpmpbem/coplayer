@@ -305,15 +305,19 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
 
   /// A duration specifying the offset between the [mainController] and the
   /// [secondaryController].
+  // TODO verify offset cannot be too big (gap between main and secondary)
   Duration offset;
 
   /// A duration specifying often should the controllers' position checked and
   /// synced if needed.
+  // TODO remove and just sync whenever controller updated?
   final Duration syncPeriod;
 
   /// A duration specifying how large the difference between the
   /// [mainController] and [secondaryController] can be before being considered
   /// out of sync.
+  ///
+  /// When zero or less any update will cause a resynchronization.
   final Duration marginOfError;
 
   late SavedPosition _mainPosition;
