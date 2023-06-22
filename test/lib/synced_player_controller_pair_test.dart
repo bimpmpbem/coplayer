@@ -400,6 +400,38 @@ void main() {
     });
   });
 
+  group('dispose', () {
+    test('when disposed, calls should throw', () async {
+      final pair = SyncedPlayerControllerPair(
+        mainController: TestController(initialValue: uninitialized2Minutes),
+        secondaryController:
+            TestController(initialValue: uninitialized9Minutes),
+      );
+
+      await pair.initialize();
+
+      await pair.dispose();
+
+      expect(() async => pair.play(), throwsFlutterError);
+    });
+
+    test('when disposed twice, should not break', () async {
+      final pair = SyncedPlayerControllerPair(
+        mainController: TestController(initialValue: uninitialized2Minutes),
+        secondaryController:
+            TestController(initialValue: uninitialized9Minutes),
+      );
+
+      await pair.initialize();
+      await pair.dispose();
+
+      expect(() async => pair.dispose(), returnsNormally);
+    });
+    test('when disposed, initialization should not work', () async {
+      // TODO
+    });
+  });
+
   group('controller updates', () {
     test('when any position changed, should sync other positions', () async {
       await secondaryBeforeMain.initialize();
