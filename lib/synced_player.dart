@@ -322,7 +322,7 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
 
   late SavedPosition _mainPosition;
   late SavedPosition _secondaryPosition;
-  bool _ignoreListeners = false;
+  bool _disposed = false;
 
   @override
   Future<void> initialize() async {
@@ -378,7 +378,7 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
   Future<void> dispose() async {
     mainController.removeListener(_mainListener);
     secondaryController.removeListener(_secondaryListener);
-    _ignoreListeners = true;
+    _disposed = true;
 
     super.dispose();
   }
@@ -436,7 +436,7 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
     required SavedPosition otherPosition,
     required Duration otherOffset,
   }) async {
-    if (_ignoreListeners) return;
+    if (_disposed) return;
 
     final updatedTarget = updatedPosition.estimateNow();
     final otherTarget = updatedTarget - otherOffset;
