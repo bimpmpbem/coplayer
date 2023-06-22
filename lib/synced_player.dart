@@ -249,10 +249,7 @@ abstract class GenericPlayerController
   /// it will resume from the given [position].
   ///
   /// If [position] is outside of the content's valid range it will
-  /// be automatically and silently clamped, and the content will be paused.
-  ///
-  /// Unless the [position] is clamped,
-  /// the content's play/pause state will not change.
+  /// be automatically and silently clamped.
   Future<void> setPosition(Duration position);
 
   /// Sets the playback speed.
