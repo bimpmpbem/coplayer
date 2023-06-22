@@ -518,13 +518,15 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
   Future<void> play() async {
     if (!value.isInitialized) return;
 
-    // sync
-    if (mainController.value.isPlaying) {
+    // sync position if previously paused
+    if (mainController.value.isPlaying &&
+        !secondaryController.value.isPlaying) {
       // sync to main if playing
       final position = (await mainController.position)!;
       await secondaryController.setPosition(position - offset);
       value = value.copyWith(position: position);
-    } else if (secondaryController.value.isPlaying) {
+    } else if (!mainController.value.isPlaying &&
+        secondaryController.value.isPlaying) {
       // sync to secondary if playing
       final position = (await secondaryController.position)!;
       await mainController.setPosition(position + offset);
