@@ -258,6 +258,20 @@ abstract class GenericPlayerController
   /// different ranges for speed values. The [speed] must be greater than 0.
   // TODO allow negative speed?
   Future<void> setPlaybackSpeed(double speed);
+
+// TODO add isInitialized and isDisposed?
+}
+
+class SavedPosition {
+  final DateTime lastUpdated;
+  final Duration position;
+
+  SavedPosition(this.lastUpdated, this.position);
+
+  Duration estimateNow() {
+    final timePassed = DateTime.now().difference(lastUpdated);
+    return position + timePassed;
+  }
 }
 
 /// A pair of [GenericPlayerController]s,
