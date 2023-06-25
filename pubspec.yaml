@@ -38,10 +38,16 @@ dependencies:
 
   dartx: ^1.1.0
 
-  # video player
-  video_player: ^2.6.1
+  # local/network video
+  video_player: ^2.6.1 # android, iOS, web
+  # video_player_win: ^2.2.2 # windows, potentially unstable
+
+  # video UI
   chewie: ^1.5.0
-  youtube_player_iframe: ^4.0.4
+
+  # youtube
+  youtube_player_iframe: ^4.0.4 # android, iOS, web
+  # youtube_explode_dart: ^1.12.4 # android, iOS, web, desktop. might be overkill
 
 dev_dependencies:
   flutter_test:
