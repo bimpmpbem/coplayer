@@ -18,9 +18,13 @@ class GridDefinition {
       );
 }
 
+typedef OrganizedWidgetBuilder = Widget Function(
+    BuildContext context, int index, Rect rect);
+
 class OrganizedStack extends StatefulWidget {
   const OrganizedStack({
-    required this.organizedWidgets,
+    required this.children,
+    this.feedbackWhenPreviewing,
     this.gridToSnap,
     this.onRectChanged,
     this.editMode = false,
@@ -30,7 +34,12 @@ class OrganizedStack extends StatefulWidget {
   /// Map of normalized positions (between 0 and 1) and their widgets.
   // TODO maybe use Alignment instead of Rect?
   // TODO order by circumference (small->big) for less conflicts when resizing?
-  final Map<Rect, Widget> organizedWidgets;
+  final Map<Rect, Widget> children;
+
+  /// The widget to show under the pointer when an edit is under way.
+  ///
+  /// If null, nothing will be previewed.
+  final Widget Function(Rect originalRect)? feedbackWhenPreviewing;
 
   /// Grid to use when snapping widgets to grid.
   ///
@@ -54,7 +63,7 @@ class _OrganizedStackState extends State<OrganizedStack> {
   static const draggingOpacity = 0.3;
   static const resizeTargetSize = 24.0;
 
-  /// Specified a (normalized) rect, defined in [widget.organizedWidgets].
+  /// Specified a (normalized) rect, defined in [widget.children].
   Rect? editOriginalNormalized;
 
   /// Specifies a potential (denormalized) rect after edit is performed.
@@ -78,8 +87,9 @@ class _OrganizedStackState extends State<OrganizedStack> {
           widget.gridToSnap?.cellSize(constraints.maxSize) ?? Size.zero;
 
       final editModifiedDenormalized = this.editModifiedDenormalized;
+      final editOriginalNormalized = this.editOriginalNormalized;
 
-      final bodies = widget.organizedWidgets.entries.flatMap((entry) {
+      final bodies = widget.children.entries.flatMap((entry) {
         final originalRect = entry.key;
         final denormalizedRect = originalRect.denormalize(constraints.maxSize);
         final child = entry.value;
@@ -129,17 +139,22 @@ class _OrganizedStackState extends State<OrganizedStack> {
         ];
       });
 
+      final previewWidget = editOriginalNormalized != null
+          ? widget.feedbackWhenPreviewing?.invoke(editOriginalNormalized)
+          : null;
+
       return Stack(
         children: [
           ...bodies,
-          if (editModifiedDenormalized != null && widget.editMode)
+          if (editModifiedDenormalized != null &&
+              previewWidget != null &&
+              widget.editMode)
             AnimatedPositioned.fromRect(
               rect: editModifiedDenormalized
                   .clamp(cellSize, constraints.maxSize)
                   .snap(cellSize),
               duration: editAnimationDuration,
-              child: widget.organizedWidgets[editOriginalNormalized] ??
-                  const Placeholder(),
+              child: previewWidget,
             ),
         ],
       );
@@ -254,7 +269,7 @@ void main() {
   runPreview(OrganizedStack(
     editMode: true,
     gridToSnap: const GridDefinition(10, 10),
-    organizedWidgets: {
+    children: {
       const Rect.fromLTWH(0.1, 0.1, 0.1, 0.1): Container(color: Colors.red),
       const Rect.fromLTWH(0.0, 0.5, 0.3, 0.3): Container(color: Colors.green),
       const Rect.fromLTWH(0.2, 0.7, 0.5, 0.3): Container(color: Colors.blue),
