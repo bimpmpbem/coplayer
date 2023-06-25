@@ -94,13 +94,16 @@ class _OrganizedStackState extends State<OrganizedStack> {
         final denormalizedRect = originalRect.denormalize(constraints.maxSize);
         final child = entry.value;
 
-        onEditEnd(Rect originalRect, Rect finalRect) => notifyRectChanged(
-              originalRect,
-              finalRect
-                  .clamp(cellSize, constraints.maxSize)
-                  .snap(cellSize)
-                  .normalize(constraints.maxSize),
-            );
+        onEditEnd(Rect originalRect, Rect finalRect) {
+          final changedRect = finalRect
+              .clamp(cellSize, constraints.maxSize)
+              .snap(cellSize)
+              .normalize(constraints.maxSize);
+
+          if (changedRect == originalRect) return;
+
+          notifyRectChanged(originalRect, changedRect);
+        }
 
         return [
           AnimatedPositioned.fromRect(
