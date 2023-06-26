@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:video_player/video_player.dart';
@@ -34,7 +33,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  ChewieController? chewieController;
+  ChewieController? chewieController1;
+  ChewieController? chewieController2;
 
   @override
   void initState() {
@@ -50,70 +50,64 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> initPlayer(String url) async {
-    final videoPlayerController = VideoPlayerController.network(url,
-        videoPlayerOptions: VideoPlayerOptions(allowBackgroundPlayback: true))
-      ..addListener(videoListener);
-    await videoPlayerController.initialize();
+    final controller1 = VideoPlayerController.network(url,
+        videoPlayerOptions: VideoPlayerOptions(
+            allowBackgroundPlayback: true, mixWithOthers: true));
+    final controller2 = VideoPlayerController.network(url,
+        videoPlayerOptions: VideoPlayerOptions(
+            allowBackgroundPlayback: true, mixWithOthers: true));
+
+    await controller1.initialize();
+    await controller2.initialize();
 
     setState(() {
-      chewieController = ChewieController(
-        videoPlayerController: videoPlayerController,
+      chewieController1 = ChewieController(
+        videoPlayerController: controller1,
+      );
+      chewieController2 = ChewieController(
+        videoPlayerController: controller2,
       );
     });
   }
 
   void clearPlayer() {
-    chewieController?.videoPlayerController.removeListener(videoListener);
-    chewieController?.videoPlayerController.dispose();
-    chewieController?.dispose();
+    chewieController1?.videoPlayerController.dispose();
+    chewieController1?.dispose();
+    chewieController2?.videoPlayerController.dispose();
+    chewieController2?.dispose();
 
     setState(() {
-      chewieController = null;
+      chewieController1 = null;
+      chewieController2 = null;
     });
-  }
-
-  void videoListener() {
-    if (kDebugMode) {
-      print("video state: ${chewieController?.videoPlayerController.value}");
-    }
-    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    final chewieController = this.chewieController;
+    final chewieController1 = this.chewieController1;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
       ),
       body: Center(
-        child: chewieController == null
+        child: chewieController1 == null
             ? const CircularProgressIndicator()
             : Column(
                 children: [
-                  AspectRatio(
-                    aspectRatio: chewieController
-                        .videoPlayerController.value.aspectRatio,
-                    child: Container(
-                        color: Colors.black,
-                        child: Chewie(controller: chewieController)),
-                  ),
-                  Slider(
-                    max: chewieController
-                        .videoPlayerController.value.duration.inMicroseconds
-                        .toDouble(),
-                    value: chewieController
-                        .videoPlayerController.value.position.inMicroseconds
-                        .toDouble(),
-                    onChanged: (value) {
-                      chewieController.videoPlayerController
-                          .seekTo(Duration(microseconds: value.toInt()));
-                    },
-                  )
+                  Expanded(child: _buildVideo(chewieController1)),
+                  Expanded(child: _buildVideo(chewieController2)),
                 ],
               ),
       ),
     );
   }
+
+  Widget _buildVideo(ChewieController? controller) => controller != null
+      ? AspectRatio(
+          aspectRatio: controller.videoPlayerController.value.aspectRatio,
+          child: Container(
+              color: Colors.black, child: Chewie(controller: controller)),
+        )
+      : const Center(child: CircularProgressIndicator());
 }
