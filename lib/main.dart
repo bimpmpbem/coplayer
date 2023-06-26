@@ -19,6 +19,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const MyHomePage(title: 'Coplayer'),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -89,6 +90,20 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
+        actions: [
+          IconButton(
+              onPressed: () {
+                chewieController1?.play();
+                chewieController2?.play();
+              },
+              icon: const Icon(Icons.play_arrow)),
+          IconButton(
+              onPressed: () {
+                chewieController1?.pause();
+                chewieController2?.pause();
+              },
+              icon: const Icon(Icons.pause)),
+        ],
       ),
       body: Center(
         child: chewieController1 == null
