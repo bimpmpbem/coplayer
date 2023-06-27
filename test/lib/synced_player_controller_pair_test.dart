@@ -177,6 +177,21 @@ void main() {
       expect(
           pair.secondaryController.value.position, const Duration(minutes: 1));
     });
+
+    test('start/end position should include main and secondary', () async {
+      await mainBeforeSecondary.initialize();
+
+      expect(
+          mainBeforeSecondary.value.startPosition, const Duration(minutes: 0));
+      expect(
+          mainBeforeSecondary.value.endPosition, const Duration(minutes: 12));
+
+      await secondaryBeforeMain.initialize();
+
+      expect(
+          secondaryBeforeMain.value.startPosition, const Duration(minutes: -3));
+      expect(secondaryBeforeMain.value.endPosition, const Duration(minutes: 9));
+    });
   });
 
   group('setPosition', () {
@@ -503,7 +518,46 @@ void main() {
     test('when reached end of both controllers, should pause', () async {});
 
     test('when start/end position of controller changes, should update pair',
-        () async {});
+        () async {
+      final main = TestController(
+        initialValue: const GenericPlayerValue(
+            startPosition: Duration(minutes: 0),
+            endPosition: Duration(minutes: 8)),
+      );
+      final secondary = TestController(
+        initialValue: const GenericPlayerValue(
+            startPosition: Duration(minutes: 2),
+            endPosition: Duration(minutes: 6)),
+      );
+      final pair = SyncedPlayerControllerPair(
+          mainController: main, secondaryController: secondary);
+
+      await pair.initialize();
+
+      main.value =
+          main.value.copyWith(startPosition: const Duration(minutes: 1));
+
+      expect(pair.value.startPosition, const Duration(minutes: 1));
+
+      main.value =
+          main.value.copyWith(startPosition: const Duration(minutes: 3));
+
+      expect(pair.value.startPosition, const Duration(minutes: 2));
+
+      secondary.value =
+          main.value.copyWith(startPosition: const Duration(minutes: 4));
+
+      expect(pair.value.startPosition, const Duration(minutes: 3));
+
+      main.value = main.value.copyWith(endPosition: const Duration(minutes: 9));
+
+      expect(pair.value.endPosition, const Duration(minutes: 9));
+
+      secondary.value =
+          secondary.value.copyWith(endPosition: const Duration(minutes: 20));
+
+      expect(pair.value.endPosition, const Duration(minutes: 20));
+    });
 
     test(
         'when both controllers are initialized, '
