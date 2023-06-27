@@ -347,15 +347,22 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
     _secondaryPosition =
         SavedPosition(DateTime.now(), secondaryController.value.position);
 
-    mainController.addListener(_mainListener);
-    secondaryController.addListener(_secondaryListener);
-
     value = value.copyWith(
       isInitialized: true,
       playbackSpeed: mainController.value.playbackSpeed,
       isBuffering: mainController.value.isBuffering ||
           secondaryController.value.isBuffering,
       position: mainController.value.position,
+      startPosition: Duration(
+          microseconds: min(
+              mainController.value.startPosition.inMicroseconds,
+              secondaryController.value.startPosition.inMicroseconds +
+                  offset.inMicroseconds)),
+      endPosition: Duration(
+          microseconds: max(
+              mainController.value.endPosition.inMicroseconds,
+              secondaryController.value.endPosition.inMicroseconds +
+                  offset.inMicroseconds)),
       isPlaying: mainController.value.isPlaying,
     );
 
@@ -381,6 +388,9 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
     //  speed
     await secondaryController
         .setPlaybackSpeed(mainController.value.playbackSpeed);
+
+    mainController.addListener(_mainListener);
+    secondaryController.addListener(_secondaryListener);
   }
 
   @override
@@ -457,7 +467,18 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
             updatedTarget > updated.value.endPosition ||
             other.value.isBuffering);
 
-    var nextValue = value.copyWith();
+    var nextValue = value.copyWith(
+      startPosition: Duration(
+          microseconds: min(
+              mainController.value.startPosition.inMicroseconds,
+              secondaryController.value.startPosition.inMicroseconds +
+                  offset.inMicroseconds)),
+      endPosition: Duration(
+          microseconds: max(
+              mainController.value.endPosition.inMicroseconds,
+              secondaryController.value.endPosition.inMicroseconds +
+                  offset.inMicroseconds)),
+    );
 
     // sync play state
     // if paused when it should be playing, pause all
