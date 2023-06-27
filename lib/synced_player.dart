@@ -162,6 +162,15 @@ class GenericPlayerValue {
         'errorDescription: $errorDescription)';
   }
 
+  String toStringCompact() {
+    return "${isInitialized ? '✔' : '?'} "
+        "${isPlaying ? '▶' : '⏸'}"
+        "${isBuffering ? '...' : '   '} |"
+        " x${playbackSpeed.toStringAsPrecision(3)} |"
+        " $startPosition\\$position/$endPosition |"
+        " Error: ${errorDescription ?? 'None'}";
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
