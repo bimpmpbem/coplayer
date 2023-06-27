@@ -1,7 +1,10 @@
+import 'package:coplayer/video/simple_video_controller.dart';
 import 'package:flutter/material.dart';
 
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
+
+import 'synced_player.dart';
 
 void main() {
   runApp(const MyApp());
@@ -36,6 +39,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   ChewieController? chewieController1;
   ChewieController? chewieController2;
+  SyncedPlayerControllerPair? syncedPair;
 
   @override
   void initState() {
@@ -58,8 +62,12 @@ class _MyHomePageState extends State<MyHomePage> {
         videoPlayerOptions: VideoPlayerOptions(
             allowBackgroundPlayback: true, mixWithOthers: true));
 
-    await controller1.initialize();
-    await controller2.initialize();
+    syncedPair = SyncedPlayerControllerPair(
+      mainController: SimpleVideoController(controller: controller1),
+      secondaryController: SimpleVideoController(controller: controller2),
+    );
+
+    await syncedPair?.initialize();
 
     setState(() {
       chewieController1 = ChewieController(
@@ -76,32 +84,27 @@ class _MyHomePageState extends State<MyHomePage> {
     chewieController1?.dispose();
     chewieController2?.videoPlayerController.dispose();
     chewieController2?.dispose();
+    syncedPair?.dispose();
 
     setState(() {
       chewieController1 = null;
       chewieController2 = null;
+      syncedPair = null;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final chewieController1 = this.chewieController1;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
         actions: [
           IconButton(
-              onPressed: () {
-                chewieController1?.play();
-                chewieController2?.play();
-              },
+              onPressed: () => syncedPair?.play(),
               icon: const Icon(Icons.play_arrow)),
           IconButton(
-              onPressed: () {
-                chewieController1?.pause();
-                chewieController2?.pause();
-              },
+              onPressed: () => syncedPair?.pause(),
               icon: const Icon(Icons.pause)),
         ],
       ),
@@ -109,20 +112,20 @@ class _MyHomePageState extends State<MyHomePage> {
         child: chewieController1 == null
             ? const CircularProgressIndicator()
             : Column(
-                children: [
-                  Expanded(child: _buildVideo(chewieController1)),
-                  Expanded(child: _buildVideo(chewieController2)),
-                ],
-              ),
+          children: [
+            Expanded(child: _buildVideo(chewieController1)),
+            Expanded(child: _buildVideo(chewieController2)),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildVideo(ChewieController? controller) => controller != null
       ? AspectRatio(
-          aspectRatio: controller.videoPlayerController.value.aspectRatio,
-          child: Container(
-              color: Colors.black, child: Chewie(controller: controller)),
-        )
+    aspectRatio: controller.videoPlayerController.value.aspectRatio,
+    child: Container(
+        color: Colors.black, child: Chewie(controller: controller)),
+  )
       : const Center(child: CircularProgressIndicator());
 }
