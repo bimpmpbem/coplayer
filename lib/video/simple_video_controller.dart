@@ -6,6 +6,7 @@ extension on VideoPlayerValue {
   GenericPlayerValue toGenericPlayerValue() => GenericPlayerValue(
         startPosition: Duration.zero,
         endPosition: duration,
+        position: position,
         isInitialized: isInitialized,
         isPlaying: isPlaying,
         isLooping: isLooping,
