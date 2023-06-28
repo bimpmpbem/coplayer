@@ -81,6 +81,7 @@ class GenericPlayerValue {
   /// The current playback position.
   ///
   /// Always between [startPosition] and [endPosition].
+  // TODO use SavedPosition?
   final Duration position;
 
   /// True if the content is playing, and [position] might change over time.
@@ -218,6 +219,7 @@ enum ObstructionBehavior {
 }
 
 /// An interface for player controllers that allow common basic controls.
+// TODO maybe split the notifying to have a notifier for each field
 abstract class GenericPlayerController
     extends ValueNotifier<GenericPlayerValue> {
   GenericPlayerController({
@@ -272,13 +274,13 @@ abstract class GenericPlayerController
 }
 
 class SavedPosition {
-  final DateTime lastUpdated;
+  final DateTime timestamp;
   final Duration position;
 
-  SavedPosition(this.lastUpdated, this.position);
+  SavedPosition(this.timestamp, this.position);
 
   Duration estimateNow() {
-    final timePassed = DateTime.now().difference(lastUpdated);
+    final timePassed = DateTime.now().difference(timestamp);
     return position + timePassed;
   }
 }
