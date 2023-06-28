@@ -468,17 +468,18 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
             other.value.isBuffering);
 
     var nextValue = value.copyWith(
-      startPosition: Duration(
-          microseconds: min(
-              mainController.value.startPosition.inMicroseconds,
-              secondaryController.value.startPosition.inMicroseconds +
-                  offset.inMicroseconds)),
-      endPosition: Duration(
-          microseconds: max(
-              mainController.value.endPosition.inMicroseconds,
-              secondaryController.value.endPosition.inMicroseconds +
-                  offset.inMicroseconds)),
-    );
+        startPosition: Duration(
+            microseconds: min(
+                mainController.value.startPosition.inMicroseconds,
+                secondaryController.value.startPosition.inMicroseconds +
+                    offset.inMicroseconds)),
+        endPosition: Duration(
+            microseconds: max(
+                mainController.value.endPosition.inMicroseconds,
+                secondaryController.value.endPosition.inMicroseconds +
+                    offset.inMicroseconds)),
+        errorDescription: "main: ${mainController.value.errorDescription}, "
+            "secondary: ${secondaryController.value.errorDescription}");
 
     // sync play state
     // if paused when it should be playing, pause all
