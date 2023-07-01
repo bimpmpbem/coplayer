@@ -1,7 +1,8 @@
-import 'dart:math';
+import 'package:flutter/foundation.dart';
 
 import 'package:dartx/dartx.dart';
-import 'package:flutter/foundation.dart';
+
+import 'duration_range.dart';
 
 /// The start/end/current position, buffering state, error state and settings
 /// of a [GenericPlayerController].
@@ -13,8 +14,7 @@ class GenericPlayerValue {
   /// Only [startPosition] and [endPosition] is required.
   /// The rest will initialize with default values when unset.
   const GenericPlayerValue({
-    this.startPosition = Duration.zero,
-    required this.endPosition,
+    required this.positionRange,
     this.position = Duration.zero,
     this.isInitialized = false,
     this.isPlaying = false,
@@ -25,17 +25,15 @@ class GenericPlayerValue {
   });
 
   /// Returns an instance for content that hasn't been loaded.
-  const GenericPlayerValue.uninitialized()
+  GenericPlayerValue.uninitialized()
       : this(
-            startPosition: Duration.zero,
-            endPosition: Duration.zero,
+            positionRange: Duration.zero.rangeTo(Duration.zero),
             isInitialized: false);
 
   /// Returns an instance with the given [errorDescription].
-  const GenericPlayerValue.erroneous(String errorDescription)
+  GenericPlayerValue.erroneous(String errorDescription)
       : this(
-            startPosition: Duration.zero,
-            endPosition: Duration.zero,
+            positionRange: Duration.zero.rangeTo(Duration.zero),
             isInitialized: false,
             errorDescription: errorDescription);
 
@@ -43,25 +41,13 @@ class GenericPlayerValue {
   /// workaround for this issue https://github.com/dart-lang/language/issues/2009
   static const String _defaultErrorDescription = 'defaultErrorDescription';
 
-  /// The current lowest point in time of the content.
+  /// The range of possible points in time of the content.
   ///
-  /// The [startPosition] is [Duration.zero]
-  /// if the content hasn't been initialized.
+  /// The range is zero if the content hasn't been initialized.
   ///
-  /// Note that the [startPosition] is not necessarily constant and
+  /// Note that the [positionRange] is not necessarily constant and
   /// might change during the life of the content (for example, livestreams)
-  // TODO rename to firstPosition?
-  final Duration startPosition;
-
-  /// The current highest point in time of the content.
-  ///
-  /// The [endPosition] is [Duration.zero]
-  /// if the content hasn't been initialized.
-  ///
-  /// Note that the [endPosition] is not necessarily constant and
-  /// might change during the life of the content (for example, livestreams)
-  // TODO rename to lastPosition?
-  final Duration endPosition;
+  final DurationRange positionRange;
 
   /// The current duration of the content.
   ///
@@ -70,13 +56,13 @@ class GenericPlayerValue {
   ///
   /// Note that the [duration] is not necessarily constant and
   /// might change during the life of the content (for example, livestreams)
-  Duration get duration => endPosition - startPosition;
+  Duration get duration => positionRange.endInclusive - positionRange.start;
 
   /// True if the current [position] is at [startPosition]
-  bool get atStart => position == startPosition;
+  bool get atStart => position == positionRange.start;
 
   /// True if the current [position] is at [endPosition]
-  bool get atEnd => position == endPosition;
+  bool get atEnd => position == positionRange.endInclusive;
 
   /// The current playback position.
   ///
@@ -122,8 +108,7 @@ class GenericPlayerValue {
   /// Returns a new instance that has the same values as this current instance,
   /// except for any overrides passed in as arguments to [copyWith].
   GenericPlayerValue copyWith({
-    Duration? startPosition,
-    Duration? endPosition,
+    DurationRange? positionRange,
     Duration? syncOffset,
     Duration? position,
     bool? isInitialized,
@@ -135,8 +120,7 @@ class GenericPlayerValue {
     String? errorDescription = _defaultErrorDescription,
   }) {
     return GenericPlayerValue(
-      startPosition: startPosition ?? this.startPosition,
-      endPosition: endPosition ?? this.endPosition,
+      positionRange: positionRange ?? this.positionRange,
       position: position ?? this.position,
       isInitialized: isInitialized ?? this.isInitialized,
       isPlaying: isPlaying ?? this.isPlaying,
@@ -149,11 +133,12 @@ class GenericPlayerValue {
     );
   }
 
+  // TODO add copyWithPosition?
+
   @override
   String toString() {
     return '${objectRuntimeType(this, 'VideoPlayerValue')}('
-        'startPosition: $startPosition, '
-        'endPosition: $endPosition, '
+        'positionRange: $positionRange, '
         'position: $position, '
         'isInitialized: $isInitialized, '
         'isPlaying: $isPlaying, '
@@ -168,17 +153,16 @@ class GenericPlayerValue {
         "${isPlaying ? '▶' : '⏸'}"
         "${isBuffering ? '...' : '   '} |"
         " x${playbackSpeed.toStringAsPrecision(3)} |"
-        " $startPosition\\$position/$endPosition |"
+        " ${positionRange.start}\\$position/${positionRange.endInclusive} |"
         " Error: ${errorDescription ?? 'None'}";
   }
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is GenericPlayerValue &&
+          other is GenericPlayerValue &&
           runtimeType == other.runtimeType &&
-          startPosition == other.startPosition &&
-          endPosition == other.endPosition &&
+          positionRange == other.positionRange &&
           position == other.position &&
           isPlaying == other.isPlaying &&
           isLooping == other.isLooping &&
@@ -189,8 +173,7 @@ class GenericPlayerValue {
 
   @override
   int get hashCode => Object.hash(
-        startPosition,
-        endPosition,
+    positionRange,
         position,
         isPlaying,
         isLooping,
@@ -224,7 +207,7 @@ abstract class GenericPlayerController
     extends ValueNotifier<GenericPlayerValue> {
   GenericPlayerController({
     this.obstructionBehavior = ObstructionBehavior.none,
-  }) : super(const GenericPlayerValue.uninitialized());
+  }) : super(GenericPlayerValue.uninitialized());
 
   /// Specifies how playback should change when there is some interruption
   /// to the user.
@@ -355,16 +338,9 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
       isBuffering: mainController.value.isBuffering ||
           secondaryController.value.isBuffering,
       position: mainController.value.position,
-      startPosition: Duration(
-          microseconds: min(
-              mainController.value.startPosition.inMicroseconds,
-              secondaryController.value.startPosition.inMicroseconds +
-                  offset.inMicroseconds)),
-      endPosition: Duration(
-          microseconds: max(
-              mainController.value.endPosition.inMicroseconds,
-              secondaryController.value.endPosition.inMicroseconds +
-                  offset.inMicroseconds)),
+      positionRange: secondaryController.value.positionRange
+          .withOffset(offset)
+          .expandToInclude(mainController.value.positionRange),
       isPlaying: mainController.value.isPlaying,
     );
 
@@ -382,11 +358,9 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
       await mainController.pause();
     }
     //  position
-    await secondaryController
-        .setPosition((mainController.value.position - offset).clamp(
-      min: secondaryController.value.startPosition,
-      max: secondaryController.value.endPosition,
-    ));
+    await secondaryController.setPosition(
+        (mainController.value.position - offset)
+            .clampToRange(secondaryController.value.positionRange));
     //  speed
     await secondaryController
         .setPlaybackSpeed(mainController.value.playbackSpeed);
@@ -465,21 +439,13 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
     final otherTarget = updatedTarget - otherOffset;
 
     final updatedShouldBePlaying = value.isPlaying &&
-        !(updatedTarget < updated.value.startPosition ||
-            updatedTarget > updated.value.endPosition ||
+        !(updated.value.positionRange.contains(updatedTarget) ||
             other.value.isBuffering);
 
     var nextValue = value.copyWith(
-        startPosition: Duration(
-            microseconds: min(
-                mainController.value.startPosition.inMicroseconds,
-                secondaryController.value.startPosition.inMicroseconds +
-                    offset.inMicroseconds)),
-        endPosition: Duration(
-            microseconds: max(
-                mainController.value.endPosition.inMicroseconds,
-                secondaryController.value.endPosition.inMicroseconds +
-                    offset.inMicroseconds)),
+        positionRange: secondaryController.value.positionRange
+            .withOffset(offset)
+            .expandToInclude(mainController.value.positionRange),
         errorDescription: "main: ${mainController.value.errorDescription}, "
             "secondary: ${secondaryController.value.errorDescription}");
 
@@ -522,9 +488,8 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
 
     // sync positions
     final otherError = (otherPosition.estimateNow() - otherTarget).abs();
-    final otherTargetInRange = otherTarget <= other.value.endPosition &&
-        otherTarget >= other.value.startPosition;
-    if (otherTargetInRange && otherError > marginOfError) {
+    if (otherTarget.inRange(other.value.positionRange) &&
+        otherError > marginOfError) {
       debugPrint(
           'controller position too different (Δ$otherError), syncing other.');
       await other.setPosition(otherTarget);
@@ -539,15 +504,7 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
   Future<void> setPosition(Duration position) async {
     if (!value.isInitialized) return;
 
-    final Duration maxPosition = Duration(
-        microseconds: max(mainController.value.endPosition.inMicroseconds,
-            (secondaryController.value.endPosition + offset).inMicroseconds));
-
-    final Duration minPosition = Duration(
-        microseconds: min(mainController.value.startPosition.inMicroseconds,
-            (secondaryController.value.startPosition + offset).inMicroseconds));
-
-    final clampedPosition = position.clamp(min: minPosition, max: maxPosition);
+    final clampedPosition = position.clampToRange(value.positionRange);
 
     final Duration mainPosition = clampedPosition;
     final Duration secondaryPosition = clampedPosition - offset;

@@ -1,11 +1,11 @@
 import 'package:video_player/video_player.dart';
 
+import '../duration_range.dart';
 import '../synced_player.dart';
 
 extension on VideoPlayerValue {
   GenericPlayerValue toGenericPlayerValue() => GenericPlayerValue(
-        startPosition: Duration.zero,
-        endPosition: duration,
+    positionRange: Duration.zero.rangeTo(duration),
         position: position,
         isInitialized: isInitialized,
         isPlaying: isPlaying,
@@ -17,6 +17,7 @@ extension on VideoPlayerValue {
 }
 
 /// Wrapper for [VideoPlayerController]
+// TODO rename to GenericVideoPlayerController?
 class SimpleVideoController extends GenericPlayerController {
   SimpleVideoController({
     super.obstructionBehavior = ObstructionBehavior.none,

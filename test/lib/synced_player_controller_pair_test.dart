@@ -1,3 +1,4 @@
+import 'package:coplayer/duration_range.dart';
 import 'package:coplayer/synced_player.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -6,25 +7,25 @@ import '../test_controller.dart';
 void main() {
   // test('', () {});
 
-  const uninitialized2Minutes =
-      GenericPlayerValue(endPosition: Duration(minutes: 2));
-  const uninitialized9Minutes =
-      GenericPlayerValue(endPosition: Duration(minutes: 9));
-  const initialized2Minutes = GenericPlayerValue(
-      endPosition: Duration(minutes: 2), isInitialized: true);
-  const initialized9Minutes = GenericPlayerValue(
-      endPosition: Duration(minutes: 9), isInitialized: true);
-  const playing2Minutes = GenericPlayerValue(
-    endPosition: Duration(minutes: 2),
+  final uninitialized2Minutes =
+      GenericPlayerValue(positionRange: const Duration(minutes: 2).asRange());
+  final uninitialized9Minutes =
+      GenericPlayerValue(positionRange: const Duration(minutes: 9).asRange());
+  final initialized2Minutes = GenericPlayerValue(
+      positionRange: const Duration(minutes: 2).asRange(), isInitialized: true);
+  final initialized9Minutes = GenericPlayerValue(
+      positionRange: const Duration(minutes: 9).asRange(), isInitialized: true);
+  final playing2Minutes = GenericPlayerValue(
+    positionRange: const Duration(minutes: 2).asRange(),
     isInitialized: true,
     isPlaying: true,
-    position: Duration(seconds: 1),
+    position: const Duration(seconds: 1),
   );
-  const playing9Minutes = GenericPlayerValue(
-    endPosition: Duration(minutes: 9),
+  final playing9Minutes = GenericPlayerValue(
+    positionRange: const Duration(minutes: 9).asRange(),
     isInitialized: true,
     isPlaying: true,
-    position: Duration(seconds: 5),
+    position: const Duration(seconds: 5),
   );
 
   late SyncedPlayerControllerPair mainBeforeSecondary;
@@ -181,16 +182,13 @@ void main() {
     test('start/end position should include main and secondary', () async {
       await mainBeforeSecondary.initialize();
 
-      expect(
-          mainBeforeSecondary.value.startPosition, const Duration(minutes: 0));
-      expect(
-          mainBeforeSecondary.value.endPosition, const Duration(minutes: 12));
+      expect(mainBeforeSecondary.value.positionRange,
+          const Duration(minutes: 0).rangeTo(const Duration(minutes: 12)));
 
       await secondaryBeforeMain.initialize();
 
-      expect(
-          secondaryBeforeMain.value.startPosition, const Duration(minutes: -3));
-      expect(secondaryBeforeMain.value.endPosition, const Duration(minutes: 9));
+      expect(secondaryBeforeMain.value.positionRange,
+          const Duration(minutes: -3).rangeTo(const Duration(minutes: 9)));
     });
   });
 
@@ -518,45 +516,56 @@ void main() {
     test('when reached end of both controllers, should pause', () async {});
 
     test('when start/end position of controller changes, should update pair',
-        () async {
-      final main = TestController(
-        initialValue: const GenericPlayerValue(
-            startPosition: Duration(minutes: 0),
-            endPosition: Duration(minutes: 8)),
+            () async {
+          final main = TestController(
+            initialValue: const GenericPlayerValue(
+            positionRange:
+                DurationRange(Duration(minutes: 0), Duration(minutes: 8))),
       );
       final secondary = TestController(
-        initialValue: const GenericPlayerValue(
-            startPosition: Duration(minutes: 2),
-            endPosition: Duration(minutes: 6)),
+        initialValue: GenericPlayerValue(
+            positionRange:
+                const Duration(minutes: 2).rangeTo(const Duration(minutes: 6))),
       );
       final pair = SyncedPlayerControllerPair(
           mainController: main, secondaryController: secondary);
 
       await pair.initialize();
 
-      main.value =
-          main.value.copyWith(startPosition: const Duration(minutes: 1));
+      main.value = main.value.copyWith(
+          positionRange:
+              const DurationRange(Duration(minutes: 1), Duration(minutes: 8)));
 
-      expect(pair.value.startPosition, const Duration(minutes: 1));
+      expect(pair.value.positionRange,
+          const DurationRange(Duration(minutes: 1), Duration(minutes: 8)));
 
-      main.value =
-          main.value.copyWith(startPosition: const Duration(minutes: 3));
+      main.value = main.value.copyWith(
+          positionRange:
+              const DurationRange(Duration(minutes: 3), Duration(minutes: 8)));
 
-      expect(pair.value.startPosition, const Duration(minutes: 2));
+      expect(pair.value.positionRange,
+          const DurationRange(Duration(minutes: 2), Duration(minutes: 8)));
 
-      secondary.value =
-          main.value.copyWith(startPosition: const Duration(minutes: 4));
+      secondary.value = secondary.value.copyWith(
+          positionRange:
+              const DurationRange(Duration(minutes: 4), Duration(minutes: 6)));
 
-      expect(pair.value.startPosition, const Duration(minutes: 3));
+      expect(pair.value.positionRange,
+          const DurationRange(Duration(minutes: 3), Duration(minutes: 8)));
 
-      main.value = main.value.copyWith(endPosition: const Duration(minutes: 9));
+      main.value = main.value.copyWith(
+          positionRange:
+              const DurationRange(Duration(minutes: 3), Duration(minutes: 9)));
 
-      expect(pair.value.endPosition, const Duration(minutes: 9));
+      expect(pair.value.positionRange,
+          const DurationRange(Duration(minutes: 3), Duration(minutes: 9)));
 
-      secondary.value =
-          secondary.value.copyWith(endPosition: const Duration(minutes: 20));
+      secondary.value = secondary.value.copyWith(
+          positionRange:
+              const DurationRange(Duration(minutes: 4), Duration(minutes: 20)));
 
-      expect(pair.value.endPosition, const Duration(minutes: 20));
+      expect(pair.value.positionRange,
+          const DurationRange(Duration(minutes: 3), Duration(minutes: 20)));
     });
 
     test(

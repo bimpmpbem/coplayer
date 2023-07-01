@@ -1,9 +1,10 @@
+import 'package:coplayer/duration_range.dart';
 import 'package:coplayer/synced_player.dart';
 
 class TestController extends GenericPlayerController {
   TestController({
     GenericPlayerValue initialValue =
-        const GenericPlayerValue(endPosition: Duration.zero),
+        const GenericPlayerValue(positionRange: DurationRange.zero),
   }) : super() {
     value = initialValue;
   }
