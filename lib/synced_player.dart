@@ -344,6 +344,8 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
       isPlaying: mainController.value.isPlaying,
     );
 
+    debugPrint("initial value: ${value.toStringCompact()}");
+
     // initial sync:
     //  play/pause
     if (mainController.value.isPlaying) {
@@ -436,30 +438,39 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
   }) async {
     if (_disposed) return;
 
+    // caching might help prevent race conditions caused by recursion
+    final pairValue = value;
+    final mainValue = mainController.value;
+    final secondaryValue = secondaryController.value;
+    final updatedValue = updated.value;
+    final otherValue = other.value;
+
+    debugPrint("updated: ${updatedValue.toStringCompact()}");
+
     final updatedTarget = updatedPosition.estimateNow();
     final otherTarget = updatedTarget - otherOffset;
 
-    final updatedShouldBePlaying = value.isPlaying &&
-        updated.value.positionRange.contains(updatedTarget) &&
-        !other.value.isBuffering;
+    final updatedShouldBePlaying = pairValue.isPlaying &&
+        updatedValue.positionRange.contains(updatedTarget) &&
+        !otherValue.isBuffering;
 
-    var nextValue = value.copyWith(
-        positionRange: secondaryController.value.positionRange
+    var nextValue = pairValue.copyWith(
+        positionRange: secondaryValue.positionRange
             .withOffset(offset)
-            .expandToInclude(mainController.value.positionRange),
-        errorDescription: "main: ${mainController.value.errorDescription}, "
-            "secondary: ${secondaryController.value.errorDescription}");
+            .expandToInclude(mainValue.positionRange),
+        errorDescription: "main: ${mainValue.errorDescription}, "
+            "secondary: ${secondaryValue.errorDescription}");
 
     // sync play state
     // if paused when it should be playing, pause all
-    if (!updated.value.isPlaying && updatedShouldBePlaying) {
+    if (!updatedValue.isPlaying && updatedShouldBePlaying) {
       debugPrint('controller paused, pausing all');
       await other.pause();
       nextValue = nextValue.copyWith(isPlaying: false);
     }
     // playing when previously paused
-    else if (updated.value.isPlaying && !value.isPlaying) {
-      if (other.value.isBuffering) {
+    else if (updatedValue.isPlaying && !pairValue.isPlaying) {
+      if (otherValue.isBuffering) {
         debugPrint(
             'controller played, but other is buffering. re-pausing controller');
         await updated.pause(); // wait for other
@@ -472,15 +483,15 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
 
     // sync buffer state
     // if started buffering, pause other & update
-    if (updated.value.isBuffering && !value.isBuffering) {
+    if (updatedValue.isBuffering && !pairValue.isBuffering) {
       debugPrint('something started buffering, pausing other');
       await other.pause();
       nextValue = nextValue.copyWith(isBuffering: true);
     }
     // if stopped buffering and trying to play, resume playback
-    else if (value.isBuffering &&
-        value.isPlaying &&
-        !(updated.value.isBuffering || other.value.isBuffering)) {
+    else if (pairValue.isBuffering &&
+        pairValue.isPlaying &&
+        !(updatedValue.isBuffering || otherValue.isBuffering)) {
       debugPrint('something stopped buffering, playing all');
       // await play();
       await other.play();
@@ -489,7 +500,7 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
 
     // sync positions
     final otherError = (otherPosition.estimateNow() - otherTarget).abs();
-    if (otherTarget.inRange(other.value.positionRange) &&
+    if (otherTarget.inRange(otherValue.positionRange) &&
         otherError > marginOfError) {
       debugPrint(
           'controller position too different (Δ$otherError), syncing other.');
@@ -498,6 +509,7 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
           position: updated == mainController ? updatedTarget : otherTarget);
     }
 
+    debugPrint("pair:    ${nextValue.toStringCompact()}");
     value = nextValue;
   }
 
