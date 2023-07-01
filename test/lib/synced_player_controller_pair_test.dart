@@ -504,7 +504,45 @@ void main() {
       expect(secondaryBeforeMain.mainController.value.isPlaying, false);
     });
     test('when playing and one is buffering, should pause rest temporarily',
-        () async {});
+        () async {
+      await secondaryBeforeMain.initialize();
+      await secondaryBeforeMain.play();
+
+      secondaryBeforeMain.mainController.value =
+          secondaryBeforeMain.mainController.value.copyWith(isBuffering: true);
+
+      expect(secondaryBeforeMain.value.isPlaying, true);
+      expect(secondaryBeforeMain.value.isBuffering, true);
+      expect(secondaryBeforeMain.mainController.value.isPlaying, true);
+      expect(secondaryBeforeMain.secondaryController.value.isPlaying, false);
+
+      secondaryBeforeMain.secondaryController.value = secondaryBeforeMain
+          .secondaryController.value
+          .copyWith(isBuffering: true);
+
+      expect(secondaryBeforeMain.value.isPlaying, true);
+      expect(secondaryBeforeMain.value.isBuffering, true);
+      // pausing others does not matter when both are buffering
+      // expect(secondaryBeforeMain.mainController.value.isPlaying, false);
+      // expect(secondaryBeforeMain.secondaryController.value.isPlaying, false);
+
+      secondaryBeforeMain.mainController.value =
+          secondaryBeforeMain.mainController.value.copyWith(isBuffering: false);
+
+      expect(secondaryBeforeMain.value.isPlaying, true);
+      expect(secondaryBeforeMain.value.isBuffering, true);
+      expect(secondaryBeforeMain.mainController.value.isPlaying, false);
+      expect(secondaryBeforeMain.secondaryController.value.isPlaying, true);
+
+      secondaryBeforeMain.secondaryController.value = secondaryBeforeMain
+          .secondaryController.value
+          .copyWith(isBuffering: false);
+
+      expect(secondaryBeforeMain.value.isPlaying, true);
+      expect(secondaryBeforeMain.value.isBuffering, false);
+      expect(secondaryBeforeMain.mainController.value.isPlaying, true);
+      expect(secondaryBeforeMain.secondaryController.value.isPlaying, true);
+    });
 
     test('when paused and one is played, should play all', () async {});
     test(
@@ -516,9 +554,9 @@ void main() {
     test('when reached end of both controllers, should pause', () async {});
 
     test('when start/end position of controller changes, should update pair',
-            () async {
-          final main = TestController(
-            initialValue: const GenericPlayerValue(
+        () async {
+      final main = TestController(
+        initialValue: const GenericPlayerValue(
             positionRange:
                 DurationRange(Duration(minutes: 0), Duration(minutes: 8))),
       );
