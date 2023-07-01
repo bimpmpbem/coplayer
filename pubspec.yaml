@@ -39,15 +39,19 @@ dependencies:
   dartx: ^1.1.0
 
   # local/network video
-  video_player: ^2.6.1 # android, iOS, web
+  video_player: ^2.7.0 # android, iOS, web
   # video_player_win: ^2.2.2 # windows, potentially unstable
 
   # video UI
   chewie: ^1.5.0
+  # video_player_control_panel: ^1.1.0 # windows
 
   # youtube
   youtube_player_iframe: ^4.0.4 # android, iOS, web
   # youtube_explode_dart: ^1.12.4 # android, iOS, web, desktop. might be overkill
+
+  # desktop
+  # bitsdojo_window: ^0.1.5 # customize window look
 
 dev_dependencies:
   flutter_test:
@@ -58,7 +62,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^2.0.1
+  flutter_lints: ^2.0.2
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
