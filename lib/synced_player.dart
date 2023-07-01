@@ -160,7 +160,7 @@ class GenericPlayerValue {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-          other is GenericPlayerValue &&
+      other is GenericPlayerValue &&
           runtimeType == other.runtimeType &&
           positionRange == other.positionRange &&
           position == other.position &&
@@ -173,7 +173,7 @@ class GenericPlayerValue {
 
   @override
   int get hashCode => Object.hash(
-    positionRange,
+        positionRange,
         position,
         isPlaying,
         isLooping,
