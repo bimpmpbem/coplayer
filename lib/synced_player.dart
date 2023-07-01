@@ -426,6 +426,7 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
   }
 
   // TODO this can probably be done better
+  // TODO maybe use a queue to prevent recursion
   Future<void> _controllerListener({
     required GenericPlayerController updated,
     required GenericPlayerController other,
@@ -439,8 +440,8 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
     final otherTarget = updatedTarget - otherOffset;
 
     final updatedShouldBePlaying = value.isPlaying &&
-        !(updated.value.positionRange.contains(updatedTarget) ||
-            other.value.isBuffering);
+        updated.value.positionRange.contains(updatedTarget) &&
+        !other.value.isBuffering;
 
     var nextValue = value.copyWith(
         positionRange: secondaryController.value.positionRange
