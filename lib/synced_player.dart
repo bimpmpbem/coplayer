@@ -317,6 +317,7 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
   late SavedPosition _mainPosition;
   late SavedPosition _secondaryPosition;
   bool _disposed = false;
+  bool _synchronizing = false;
 
   @override
   Future<void> initialize() async {
@@ -436,7 +437,8 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
     required SavedPosition otherPosition,
     required Duration otherOffset,
   }) async {
-    if (_disposed) return;
+    if (_disposed || _synchronizing) return;
+    _synchronizing = true;
 
     // caching might help prevent race conditions caused by recursion
     final pairValue = value;
@@ -511,6 +513,7 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
 
     debugPrint("pair:    ${nextValue.toStringCompact()}");
     value = nextValue;
+    _synchronizing = false;
   }
 
   @override
