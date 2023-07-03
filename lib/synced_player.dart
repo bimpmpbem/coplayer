@@ -205,7 +205,11 @@ abstract class GenericPlayerController
     extends ValueNotifier<GenericPlayerValue> {
   GenericPlayerController({
     this.obstructionBehavior = ObstructionBehavior.none,
+    this.label,
   }) : super(GenericPlayerValue.uninitialized());
+
+  /// An optional label for this controller
+  final String? label;
 
   /// Specifies how playback should change when there is some interruption
   /// to the user.
