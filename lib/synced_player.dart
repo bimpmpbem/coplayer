@@ -109,14 +109,12 @@ class GenericPlayerValue {
   /// except for any overrides passed in as arguments to [copyWith].
   GenericPlayerValue copyWith({
     DurationRange? positionRange,
-    Duration? syncOffset,
     Duration? position,
     bool? isInitialized,
     bool? isPlaying,
     bool? isLooping,
     bool? isBuffering,
     double? playbackSpeed,
-    int? rotationCorrection,
     String? errorDescription = _defaultErrorDescription,
   }) {
     return GenericPlayerValue(
