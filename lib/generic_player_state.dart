@@ -1,0 +1,203 @@
+import 'package:coplayer/snapshot.dart';
+import 'package:coplayer/synced_player.dart';
+import 'package:flutter/foundation.dart';
+
+import 'duration_range.dart';
+
+/// A state of a [GenericPlayerController].
+/// Contains start/end/current position, buffering status, error status, etc.
+/// as a [Snapshot] with the time of last change.
+// Copied from video_player, and modified to be more generic
+// (w/o audio, captions, etc.)
+class GenericPlayerState {
+  const GenericPlayerState({
+    required this.positionRange,
+    required this.position,
+    required this.isInitialized,
+    required this.isPlaying,
+    required this.isLooping,
+    required this.isBuffering,
+    required this.playbackSpeed,
+    required this.errorDescription,
+  });
+
+  /// Constructs with the given values.
+  /// Only [startPosition] and [endPosition] is required.
+  /// The rest will initialize with default values when unset.
+  GenericPlayerState.now({
+    required DurationRange positionRange,
+    position = Duration.zero,
+    isInitialized = false,
+    isPlaying = false,
+    isLooping = false,
+    isBuffering = false,
+    playbackSpeed = 1.0,
+    errorDescription,
+  })  : positionRange = Snapshot.now(positionRange),
+        position = Snapshot.now(position),
+        isInitialized = Snapshot.now(isInitialized),
+        isPlaying = Snapshot.now(isPlaying),
+        isLooping = Snapshot.now(isLooping),
+        isBuffering = Snapshot.now(isBuffering),
+        playbackSpeed = Snapshot.now(playbackSpeed),
+        errorDescription =
+            errorDescription == null ? null : Snapshot.now(errorDescription);
+
+  /// Returns an instance for content that hasn't been loaded.
+  GenericPlayerState.uninitialized()
+      : this.now(
+            positionRange: Duration.zero.rangeTo(Duration.zero),
+            isInitialized: false);
+
+  /// Returns an instance with the given [errorDescription].
+  GenericPlayerState.erroneous(String errorDescription)
+      : this.now(
+            positionRange: Duration.zero.rangeTo(Duration.zero),
+            isInitialized: false,
+            errorDescription: errorDescription);
+
+  /// This constant is just to indicate that parameter is not passed to [copyWith]
+  /// workaround for this issue https://github.com/dart-lang/language/issues/2009
+  static const String _defaultErrorDescription = 'defaultErrorDescription';
+
+  /// The range of possible points in time of the content.
+  ///
+  /// The range is zero if the content hasn't been initialized.
+  ///
+  /// Note that the [positionRange] is not necessarily constant and
+  /// might change during the life of the content (for example, livestreams)
+  final Snapshot<DurationRange> positionRange;
+
+  /// The current duration of the content.
+  ///
+  /// The [duration] is [Duration.zero]
+  /// if the content hasn't been initialized.
+  ///
+  /// Note that the [duration] is not necessarily constant and
+  /// might change during the life of the content (for example, livestreams)
+  Duration get duration =>
+      positionRange.value.endInclusive - positionRange.value.start;
+
+  /// True if the current [position] is at [startPosition]
+  bool get atStart => position.value == positionRange.value.start;
+
+  /// True if the current [position] is at [endPosition]
+  bool get atEnd => position.value == positionRange.value.endInclusive;
+
+  /// The current playback position.
+  ///
+  /// Always between [startPosition] and [endPosition].
+  // TODO use SavedPosition?
+  final Snapshot<Duration> position;
+
+  /// True if the content is playing, and [position] might change over time.
+  /// Does not imply anything about [playbackSpeed], or [isBuffering] state.
+  ///
+  /// False if it's paused, and [position] will not update unless
+  /// manually changed.
+  final Snapshot<bool> isPlaying;
+
+  /// True if the content is looping.
+  // TODO remove?
+  final Snapshot<bool> isLooping;
+
+  /// True if the content is currently buffering.
+  ///
+  /// Does not necessarily mean content is paused.
+  final Snapshot<bool> isBuffering;
+
+  /// The current speed of the playback,
+  /// where 0 means no progress, and 1 means normal/default playback.
+  ///
+  /// Different values support (<0, 0->1, >1) depend on implementation.
+  final Snapshot<double> playbackSpeed;
+
+  /// A description of the error if present.
+  ///
+  /// If [hasError] is false this is `null`.
+  final Snapshot<String>? errorDescription;
+
+  /// Indicates whether or not the content has been loaded and is ready to play.
+  // TODO remove and just use nullable ValueNotifier<GenericPlayerValue?> for uninitialized
+  final Snapshot<bool> isInitialized;
+
+  /// Indicates whether or not the content is in an error state. If this is true
+  /// [errorDescription] should have information about the problem.
+  bool get hasError => errorDescription != null;
+
+  /// Returns a new instance that has the same values as this current instance,
+  /// except for any overrides passed in as arguments to [copyWith].
+  GenericPlayerState copyWith({
+    DurationRange? positionRange,
+    Duration? position,
+    bool? isInitialized,
+    bool? isPlaying,
+    bool? isLooping,
+    bool? isBuffering,
+    double? playbackSpeed,
+    String? errorDescription = _defaultErrorDescription,
+  }) {
+    return GenericPlayerState(
+      positionRange: positionRange?.snapshot() ?? this.positionRange,
+      position: position?.snapshot() ?? this.position,
+      isInitialized: isInitialized?.snapshot() ?? this.isInitialized,
+      isPlaying: isPlaying?.snapshot() ?? this.isPlaying,
+      isLooping: isLooping?.snapshot() ?? this.isLooping,
+      isBuffering: isBuffering?.snapshot() ?? this.isBuffering,
+      playbackSpeed: playbackSpeed?.snapshot() ?? this.playbackSpeed,
+      errorDescription: errorDescription != _defaultErrorDescription
+          ? errorDescription?.snapshot()
+          : this.errorDescription,
+    );
+  }
+
+  // TODO add copyWithPosition?
+
+  @override
+  String toString() {
+    return '${objectRuntimeType(this, 'VideoPlayerValue')}('
+        'positionRange: $positionRange, '
+        'position: $position, '
+        'isInitialized: $isInitialized, '
+        'isPlaying: $isPlaying, '
+        'isLooping: $isLooping, '
+        'isBuffering: $isBuffering, '
+        'playbackSpeed: $playbackSpeed, '
+        'errorDescription: $errorDescription)';
+  }
+
+  String toStringCompact() {
+    return "${isInitialized.value ? '✔' : '?'} "
+        "${isPlaying.value ? '▶' : '⏸'}"
+        "${isBuffering.value ? '...' : '   '} |"
+        " x${playbackSpeed.value.toStringAsPrecision(3)} |"
+        " ${positionRange.value.start}\\$position/${positionRange.value.endInclusive} |"
+        " Error: ${errorDescription ?? 'None'}";
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GenericPlayerState &&
+          runtimeType == other.runtimeType &&
+          positionRange == other.positionRange &&
+          position == other.position &&
+          isPlaying == other.isPlaying &&
+          isLooping == other.isLooping &&
+          isBuffering == other.isBuffering &&
+          playbackSpeed == other.playbackSpeed &&
+          errorDescription == other.errorDescription &&
+          isInitialized == other.isInitialized;
+
+  @override
+  int get hashCode => Object.hash(
+        positionRange,
+        position,
+        isPlaying,
+        isLooping,
+        isBuffering,
+        playbackSpeed,
+        errorDescription,
+        isInitialized,
+      );
+}
