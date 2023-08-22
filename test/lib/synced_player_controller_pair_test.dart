@@ -544,6 +544,9 @@ void main() {
       expect(secondaryBeforeMain.secondaryController.value.isPlaying, true);
     });
 
+    test('when buffering and one is played/paused, should still update',
+        () async {});
+
     test('when paused and one is played, should play all', () async {});
     test(
         'when paused and one is played while other ended, should play only one',
