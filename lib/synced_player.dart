@@ -468,7 +468,7 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
     // sync play state
     // if paused when it should be playing, pause all
     if (!updatedValue.isPlaying && updatedShouldBePlaying) {
-      debugPrint('controller paused, pausing all');
+      debugPrint('controller paused, pausing other');
       await other.pause();
       nextValue = nextValue.copyWith(isPlaying: false);
     }
@@ -479,7 +479,7 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
             'controller played, but other is buffering. re-pausing controller');
         await updated.pause(); // wait for other
       } else {
-        debugPrint('controller played, playing all');
+        debugPrint('controller played, playing other');
         await other.play();
         nextValue = nextValue.copyWith(isPlaying: true);
       }
@@ -496,7 +496,7 @@ class SyncedPlayerControllerPair extends GenericPlayerController {
     else if (pairValue.isBuffering &&
         pairValue.isPlaying &&
         !(updatedValue.isBuffering || otherValue.isBuffering)) {
-      debugPrint('something stopped buffering, playing all');
+      debugPrint('something stopped buffering, playing other');
       // await play();
       await other.play();
       nextValue = nextValue.copyWith(isBuffering: false);
