@@ -158,6 +158,7 @@ class GenericPlayerState {
 
   /// Returns a new instance that has the same values as this current instance,
   /// except for any overrides passed in as arguments to [copyWith].
+  // TODO split to copyWith and copyWithValues?
   GenericPlayerState copyWith({
     DurationRange? positionRange,
     Duration? position,
@@ -175,6 +176,18 @@ class GenericPlayerState {
       errorDescription: errorDescription != _defaultErrorDescription
           ? errorDescription?.snapshot()
           : this.errorDescription,
+    );
+  }
+
+  GenericPlayerState copyWithOffset(Duration offset) {
+    return GenericPlayerState(
+      positionRange:
+          positionRange.copyWith(value: positionRange.value.withOffset(offset)),
+      position: position.copyWith(value: position.value + offset),
+      playState: playState,
+      isLooping: isLooping,
+      playbackSpeed: playbackSpeed,
+      errorDescription: errorDescription,
     );
   }
 
