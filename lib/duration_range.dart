@@ -47,7 +47,13 @@ extension DurationRangeX on Duration {
       DurationRange(this, endInclusive);
 
   /// Creates a [DurationRange] from [Duration.zero] to this [Duration]
+  // TODO rename to rangeToHere (w/ optional start Duration.zero)?
   DurationRange asRange() => DurationRange(Duration.zero, this);
+
+  /// Creates a [DurationRange] with this [Duration] at the center, and a total
+  /// length of 2*[margin]
+  DurationRange addMargin(Duration margin) =>
+      DurationRange(this - margin, this + margin);
 }
 
 extension DurationClamp on Duration {
