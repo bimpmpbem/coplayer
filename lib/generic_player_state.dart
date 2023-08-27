@@ -4,6 +4,44 @@ import 'package:flutter/foundation.dart';
 
 import 'duration_range.dart';
 
+enum PlayState {
+  /// Playback is playing and will progress automatically over time.
+  ///
+  /// When in this state, playback is progressing linearly and can be estimated
+  /// using last known position.
+  playing('▶', 'Playing'),
+
+  /// Playback is temporarily paused to buffer content.
+  /// When buffering completes, playback will resume automatically.
+  playingBuffering('↺', 'Buffering'),
+
+  // /// Playback is temporarily paused due to position reaching the start or end
+  // /// of the content.
+  // /// When position is changed to a valid value,
+  // /// playback will resume automatically.
+  // playingClamped('X'),
+
+  /// The content is paused until resumed manually.
+  paused('⏸', 'Paused'),
+
+  // pausedUnplayable?
+
+  // looping?
+
+  /// Stopped due to error in playback.
+  error('⚠', 'Error'),
+
+  /// Content not loaded yet.
+  uninitialized('X', 'Unloaded');
+
+  // disposed?
+
+  const PlayState(this.symbol, this.shortText);
+
+  final String symbol;
+  final String shortText;
+}
+
 /// A state of a [GenericPlayerController].
 /// Contains start/end/current position, buffering status, error status, etc.
 /// as a [Snapshot] with the time of last change.
