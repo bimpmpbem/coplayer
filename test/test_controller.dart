@@ -1,26 +1,27 @@
 import 'package:coplayer/duration_range.dart';
+import 'package:coplayer/generic_player_state.dart';
 import 'package:coplayer/synced_player.dart';
 
 class TestController extends GenericPlayerController {
-  TestController({
-    GenericPlayerValue initialValue =
-        const GenericPlayerValue(positionRange: DurationRange.zero),
-  }) : super() {
-    value = initialValue;
+  TestController({GenericPlayerState? initialValue}) : super() {
+    value = initialValue ??
+        GenericPlayerState.now(positionRange: DurationRange.zero);
   }
 
   @override
   Future<void> initialize() async =>
-      value = value.copyWith(isInitialized: true);
+      value = value.copyWith(playState: PlayState.paused);
 
   @override
-  Future<void> pause() async => value = value.copyWith(isPlaying: false);
+  Future<void> pause() async =>
+      value = value.copyWith(playState: PlayState.paused);
 
   @override
-  Future<void> play() async => value = value.copyWith(isPlaying: true);
+  Future<void> play() async =>
+      value = value.copyWith(playState: PlayState.playing);
 
   @override
-  Future<Duration?> get position async => value.position;
+  Future<Duration?> get position async => value.position.value;
 
   @override
   Future<void> setPlaybackSpeed(double speed) async =>

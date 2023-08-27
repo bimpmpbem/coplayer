@@ -2,70 +2,106 @@ import 'package:video_player/video_player.dart';
 
 import '../duration_range.dart';
 import '../synced_player.dart';
-
-extension on VideoPlayerValue {
-  GenericPlayerValue toGenericPlayerValue() => GenericPlayerValue(
-    positionRange: Duration.zero.rangeTo(duration),
-        position: position,
-        isInitialized: isInitialized,
-        isPlaying: isPlaying,
-        isLooping: isLooping,
-        isBuffering: isBuffering,
-        playbackSpeed: playbackSpeed,
-        errorDescription: errorDescription,
-      );
-}
+import '../generic_player_state.dart';
 
 /// Wrapper for [VideoPlayerController]
 // TODO rename to GenericVideoPlayerController?
 class SimpleVideoController extends GenericPlayerController {
   SimpleVideoController({
     super.obstructionBehavior = ObstructionBehavior.none,
-    required this.controller,
+    required this.videoPlayerController,
   });
 
-  final VideoPlayerController controller;
+  final VideoPlayerController videoPlayerController;
 
   @override
   Future<void> initialize() async {
-    await controller.initialize();
-    controller.addListener(_listener);
+    await videoPlayerController.initialize();
 
-    value = controller.value.toGenericPlayerValue();
+    final controllerValue = videoPlayerController.value;
+
+    value = GenericPlayerState.now(
+      positionRange: Duration.zero.rangeTo(controllerValue.duration),
+      position: controllerValue.position,
+      playState: decipherPlayState(controllerValue),
+      errorDescription: controllerValue.errorDescription,
+      isLooping: controllerValue.isLooping,
+      playbackSpeed: controllerValue.playbackSpeed,
+    );
+
+    videoPlayerController.addListener(_listener);
   }
 
   @override
   Future<void> dispose() async {
-    controller.removeListener(_listener);
-    await controller.dispose();
+    videoPlayerController.removeListener(_listener);
+    await videoPlayerController.dispose();
     super.dispose();
   }
 
   @override
-  Future<void> setPosition(Duration position) => controller.seekTo(position);
+  Future<void> setPosition(Duration position) =>
+      videoPlayerController.seekTo(position);
 
   @override
-  Future<void> pause() => controller.pause();
+  Future<void> pause() => videoPlayerController.pause();
 
   @override
-  Future<void> play() {
-    return controller.play();
-  }
+  Future<void> play() => videoPlayerController.play();
 
   @override
   // TODO check latency
-  Future<Duration?> get position => controller.position;
+  Future<Duration?> get position => videoPlayerController.position;
 
   @override
   Future<void> setPlaybackSpeed(double speed) =>
-      controller.setPlaybackSpeed(speed);
+      videoPlayerController.setPlaybackSpeed(speed);
 
   Future<void> _listener() async {
-    // position update manually cause it isn't always up to date
+    GenericPlayerState nextState = value;
+    final controllerValue = videoPlayerController.value;
+
+    if (value.positionRange.value.endInclusive != controllerValue.duration) {
+      nextState = nextState.copyWith(
+          positionRange: Duration.zero.rangeTo(controllerValue.duration));
+    }
+
+    // can't use controllerValue.position cause it's not always up to date
     // (for example, calling pause() does not update position)
     // TODO fix video_player?
-    value = controller.value
-        .copyWith(position: await controller.position)
-        .toGenericPlayerValue();
+    if (value.position.value != await videoPlayerController.position) {
+      nextState = nextState.copyWith(position: controllerValue.position);
+    }
+
+    final playState = decipherPlayState(controllerValue);
+    if (value.playState.value != playState) {
+      nextState = nextState.copyWith(playState: playState);
+    }
+
+    if (value.errorDescription?.value != controllerValue.errorDescription) {
+      nextState = nextState.copyWith(
+          errorDescription: controllerValue.errorDescription);
+    }
+
+    if (value.isLooping.value != controllerValue.isLooping) {
+      nextState = nextState.copyWith(isLooping: controllerValue.isLooping);
+    }
+
+    if (value.playbackSpeed.value != controllerValue.playbackSpeed) {
+      nextState =
+          nextState.copyWith(playbackSpeed: controllerValue.playbackSpeed);
+    }
+
+    if (value != nextState) {
+      value = nextState;
+    }
+  }
+
+  PlayState decipherPlayState(VideoPlayerValue controllerValue) {
+    if (controllerValue.hasError) return PlayState.error;
+    if (!controllerValue.isInitialized) return PlayState.uninitialized;
+    if (!controllerValue.isPlaying) return PlayState.paused;
+    if (controllerValue.isBuffering) return PlayState.playingBuffering;
+    return PlayState.playing;
   }
 }
