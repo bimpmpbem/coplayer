@@ -14,6 +14,8 @@ class Snapshot<T> {
     return 'Snapshot{value: $value, timestamp: $timestamp}';
   }
 
+  // TODO add valuesEquals? useful for testing
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -24,20 +26,6 @@ class Snapshot<T> {
 
   @override
   int get hashCode => value.hashCode ^ timestamp.hashCode;
-}
-
-extension DateTimeSnapshotEstimateNow on Snapshot<DateTime> {
-  DateTime estimateNow() {
-    final timePassed = DateTime.now().difference(timestamp);
-    return value.add(timePassed);
-  }
-}
-
-extension DurationSnapshotEstimateNow on Snapshot<Duration> {
-  Duration estimateNow() {
-    final timePassed = DateTime.now().difference(timestamp);
-    return value + timePassed;
-  }
 }
 
 extension ObjectToSnapshot<T> on T {
