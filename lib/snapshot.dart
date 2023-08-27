@@ -6,6 +6,9 @@ class Snapshot<T> {
 
   Snapshot.now(T value) : this(DateTime.now(), value);
 
+  Snapshot<T> copyWith({DateTime? timestamp, T? value}) =>
+      Snapshot(timestamp ?? this.timestamp, value ?? this.value);
+
   @override
   String toString() {
     return 'Snapshot{value: $value, timestamp: $timestamp}';
