@@ -23,6 +23,13 @@ class DurationRange extends Range<Duration> {
                 otherRange.endInclusive.inMicroseconds)));
   }
 
+  DurationRange shrinkToFit(DurationRange otherRange) {
+    return DurationRange(
+      start.clampToRange(otherRange),
+      endInclusive.clampToRange(otherRange),
+    );
+  }
+
   DurationRange withStart(Duration newStart) =>
       DurationRange(newStart, endInclusive);
 
