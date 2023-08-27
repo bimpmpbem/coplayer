@@ -123,15 +123,19 @@ class GenericPlayerState {
   /// The current playback position.
   ///
   /// Always between [startPosition] and [endPosition].
-  // TODO use SavedPosition?
   final Snapshot<Duration> position;
 
-  /// True if the content is playing, and [position] might change over time.
-  /// Does not imply anything about [playbackSpeed], or [isBuffering] state.
-  ///
-  /// False if it's paused, and [position] will not update unless
-  /// manually changed.
-  final Snapshot<bool> isPlaying;
+  Duration get estimatedPosition {
+    if (playState.value != PlayState.playing) return position.value;
+
+    final timePassed = DateTime.now().difference(position.timestamp);
+
+    return (position.value + timePassed * playbackSpeed.value)
+        .clampToRange(positionRange.value);
+  }
+
+  /// Current state of playback
+  final Snapshot<PlayState> playState;
 
   /// True if the content is looping.
   // TODO remove?
