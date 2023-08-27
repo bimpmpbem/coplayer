@@ -51,10 +51,11 @@ class GenericPlayerState {
   const GenericPlayerState({
     required this.positionRange,
     required this.position,
-    required this.isInitialized,
-    required this.isPlaying,
+    // required this.isInitialized,
+    // required this.isPlaying,
+    required this.playState,
     required this.isLooping,
-    required this.isBuffering,
+    // required this.isBuffering,
     required this.playbackSpeed,
     required this.errorDescription,
   });
@@ -64,19 +65,16 @@ class GenericPlayerState {
   /// The rest will initialize with default values when unset.
   GenericPlayerState.now({
     required DurationRange positionRange,
-    position = Duration.zero,
-    isInitialized = false,
-    isPlaying = false,
-    isLooping = false,
-    isBuffering = false,
-    playbackSpeed = 1.0,
-    errorDescription,
-  })  : positionRange = Snapshot.now(positionRange),
+    Duration position = Duration.zero,
+    PlayState playState = PlayState.uninitialized,
+    bool isLooping = false,
+    double playbackSpeed = 1.0,
+    String? errorDescription,
+  })
+      : positionRange = Snapshot.now(positionRange),
         position = Snapshot.now(position),
-        isInitialized = Snapshot.now(isInitialized),
-        isPlaying = Snapshot.now(isPlaying),
+        playState = Snapshot.now(playState),
         isLooping = Snapshot.now(isLooping),
-        isBuffering = Snapshot.now(isBuffering),
         playbackSpeed = Snapshot.now(playbackSpeed),
         errorDescription =
             errorDescription == null ? null : Snapshot.now(errorDescription);
@@ -85,13 +83,13 @@ class GenericPlayerState {
   GenericPlayerState.uninitialized()
       : this.now(
             positionRange: Duration.zero.rangeTo(Duration.zero),
-            isInitialized: false);
+            playState: PlayState.uninitialized);
 
   /// Returns an instance with the given [errorDescription].
   GenericPlayerState.erroneous(String errorDescription)
       : this.now(
-            positionRange: Duration.zero.rangeTo(Duration.zero),
-            isInitialized: false,
+      positionRange: Duration.zero.rangeTo(Duration.zero),
+            playState: PlayState.uninitialized,
             errorDescription: errorDescription);
 
   /// This constant is just to indicate that parameter is not passed to [copyWith]
@@ -139,11 +137,6 @@ class GenericPlayerState {
   // TODO remove?
   final Snapshot<bool> isLooping;
 
-  /// True if the content is currently buffering.
-  ///
-  /// Does not necessarily mean content is paused.
-  final Snapshot<bool> isBuffering;
-
   /// The current speed of the playback,
   /// where 0 means no progress, and 1 means normal/default playback.
   ///
@@ -155,10 +148,6 @@ class GenericPlayerState {
   /// If [hasError] is false this is `null`.
   final Snapshot<String>? errorDescription;
 
-  /// Indicates whether or not the content has been loaded and is ready to play.
-  // TODO remove and just use nullable ValueNotifier<GenericPlayerValue?> for uninitialized
-  final Snapshot<bool> isInitialized;
-
   /// Indicates whether or not the content is in an error state. If this is true
   /// [errorDescription] should have information about the problem.
   bool get hasError => errorDescription != null;
@@ -168,20 +157,16 @@ class GenericPlayerState {
   GenericPlayerState copyWith({
     DurationRange? positionRange,
     Duration? position,
-    bool? isInitialized,
-    bool? isPlaying,
+    PlayState? playState,
     bool? isLooping,
-    bool? isBuffering,
     double? playbackSpeed,
     String? errorDescription = _defaultErrorDescription,
   }) {
     return GenericPlayerState(
       positionRange: positionRange?.snapshot() ?? this.positionRange,
       position: position?.snapshot() ?? this.position,
-      isInitialized: isInitialized?.snapshot() ?? this.isInitialized,
-      isPlaying: isPlaying?.snapshot() ?? this.isPlaying,
+      playState: playState?.snapshot() ?? this.playState,
       isLooping: isLooping?.snapshot() ?? this.isLooping,
-      isBuffering: isBuffering?.snapshot() ?? this.isBuffering,
       playbackSpeed: playbackSpeed?.snapshot() ?? this.playbackSpeed,
       errorDescription: errorDescription != _defaultErrorDescription
           ? errorDescription?.snapshot()
@@ -196,20 +181,16 @@ class GenericPlayerState {
     return '${objectRuntimeType(this, 'VideoPlayerValue')}('
         'positionRange: $positionRange, '
         'position: $position, '
-        'isInitialized: $isInitialized, '
-        'isPlaying: $isPlaying, '
+        'playState: $playState, '
         'isLooping: $isLooping, '
-        'isBuffering: $isBuffering, '
         'playbackSpeed: $playbackSpeed, '
         'errorDescription: $errorDescription)';
   }
 
   String toStringCompact() {
-    return "${isInitialized.value ? '✔' : '?'} "
-        "${isPlaying.value ? '▶' : '⏸'}"
-        "${isBuffering.value ? '...' : '   '} |"
+    return "${playState.value.symbol} |"
         " x${playbackSpeed.value.toStringAsPrecision(3)} |"
-        " ${positionRange.value.start}\\$position/${positionRange.value.endInclusive} |"
+        " ${positionRange.value.start}\\${position.value}/${positionRange.value.endInclusive} |"
         " Error: ${errorDescription ?? 'None'}";
   }
 
@@ -220,22 +201,18 @@ class GenericPlayerState {
           runtimeType == other.runtimeType &&
           positionRange == other.positionRange &&
           position == other.position &&
-          isPlaying == other.isPlaying &&
+          playState == other.playState &&
           isLooping == other.isLooping &&
-          isBuffering == other.isBuffering &&
           playbackSpeed == other.playbackSpeed &&
-          errorDescription == other.errorDescription &&
-          isInitialized == other.isInitialized;
+          errorDescription == other.errorDescription;
 
   @override
   int get hashCode => Object.hash(
-        positionRange,
+    positionRange,
         position,
-        isPlaying,
+        playState,
         isLooping,
-        isBuffering,
         playbackSpeed,
         errorDescription,
-        isInitialized,
       );
 }
