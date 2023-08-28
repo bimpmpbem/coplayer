@@ -41,6 +41,9 @@ dependencies:
   # local/network video
   video_player: ^2.7.0 # android, iOS, web
   # video_player_win: ^2.2.2 # windows, potentially unstable
+  fvp: ^0.4.0 # for video_player, alternative implementation for all platforms
+
+  # media_kit: ^1.1.7 # video_player alternative supports everything, less well known
 
   # video UI
   chewie: ^1.7.0

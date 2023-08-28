@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
 import 'package:video_player/video_player.dart';
+import 'package:fvp/fvp.dart';
 import 'package:chewie/chewie.dart';
 
 import 'synced_player_group_controller.dart';
 import 'video/simple_video_controller.dart';
 
 void main() {
+  registerWith();
   runApp(const MyApp());
 }
 
