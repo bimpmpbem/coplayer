@@ -51,11 +51,8 @@ class GenericPlayerState {
   const GenericPlayerState({
     required this.positionRange,
     required this.position,
-    // required this.isInitialized,
-    // required this.isPlaying,
     required this.playState,
     required this.isLooping,
-    // required this.isBuffering,
     required this.playbackSpeed,
     required this.errorDescription,
   });

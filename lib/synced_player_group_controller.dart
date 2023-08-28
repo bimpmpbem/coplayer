@@ -26,17 +26,6 @@ class SyncedController {
       controller.value.estimatedPosition + offset;
 }
 
-// A pair of [GenericPlayerController]s,
-// which are kept in sync with each other.
-//
-// All the controllers' play/pause/speed/position states will stay in sync,
-// while applying their respective offsets.
-//
-// The pair will end playback once the last controller has ended playback.
-//
-// The pair's startPosition will be the smallest of the controller's
-// startPosition, and the endPosition will be the largest endPosition.
-
 /// A group of [GenericPlayerController]s, which are kept in sync with each
 /// other.
 ///
