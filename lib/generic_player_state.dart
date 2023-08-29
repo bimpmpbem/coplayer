@@ -67,8 +67,7 @@ class GenericPlayerState {
     bool isLooping = false,
     double playbackSpeed = 1.0,
     String? errorDescription,
-  })
-      : positionRange = Snapshot.now(positionRange),
+  })  : positionRange = Snapshot.now(positionRange),
         position = Snapshot.now(position),
         playState = Snapshot.now(playState),
         isLooping = Snapshot.now(isLooping),
@@ -85,7 +84,7 @@ class GenericPlayerState {
   /// Returns an instance with the given [errorDescription].
   GenericPlayerState.erroneous(String errorDescription)
       : this.now(
-      positionRange: Duration.zero.rangeTo(Duration.zero),
+            positionRange: Duration.zero.rangeTo(Duration.zero),
             playState: PlayState.uninitialized,
             errorDescription: errorDescription);
 
@@ -222,7 +221,7 @@ class GenericPlayerState {
 
   @override
   int get hashCode => Object.hash(
-    positionRange,
+        positionRange,
         position,
         playState,
         isLooping,
