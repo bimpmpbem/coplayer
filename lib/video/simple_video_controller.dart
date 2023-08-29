@@ -1,4 +1,5 @@
 import 'package:video_player/video_player.dart';
+import 'package:mutex/mutex.dart';
 
 import '../duration_range.dart';
 import '../generic_player_controller.dart';
@@ -13,6 +14,8 @@ class SimpleVideoController extends GenericPlayerController {
   });
 
   final VideoPlayerController videoPlayerController;
+
+  final _mutex = Mutex();
 
   @override
   Future<void> initialize() async {
@@ -58,43 +61,45 @@ class SimpleVideoController extends GenericPlayerController {
       videoPlayerController.setPlaybackSpeed(speed);
 
   Future<void> _updateState() async {
-    GenericPlayerState nextState = value;
-    final controllerValue = videoPlayerController.value;
+    await _mutex.protect(() async {
+      GenericPlayerState nextState = value;
+      final controllerValue = videoPlayerController.value;
 
-    if (value.positionRange.value.endInclusive != controllerValue.duration) {
-      nextState = nextState.copyWith(
-          positionRange: Duration.zero.rangeTo(controllerValue.duration));
-    }
+      if (value.positionRange.value.endInclusive != controllerValue.duration) {
+        nextState = nextState.copyWith(
+            positionRange: Duration.zero.rangeTo(controllerValue.duration));
+      }
 
-    // can't use controllerValue.position cause it's not always up to date
-    // (for example, calling pause() does not update position)
-    // TODO fix video_player?
-    if (value.position.value != await videoPlayerController.position) {
-      nextState = nextState.copyWith(position: controllerValue.position);
-    }
+      // can't use controllerValue.position cause it's not always up to date
+      // (for example, calling pause() does not update position)
+      // TODO fix video_player?
+      if (value.position.value != await videoPlayerController.position) {
+        nextState = nextState.copyWith(position: controllerValue.position);
+      }
 
-    final playState = decipherPlayState(controllerValue);
-    if (value.playState.value != playState) {
-      nextState = nextState.copyWith(playState: playState);
-    }
+      final playState = decipherPlayState(controllerValue);
+      if (value.playState.value != playState) {
+        nextState = nextState.copyWith(playState: playState);
+      }
 
-    if (value.errorDescription?.value != controllerValue.errorDescription) {
-      nextState = nextState.copyWith(
-          errorDescription: controllerValue.errorDescription);
-    }
+      if (value.errorDescription?.value != controllerValue.errorDescription) {
+        nextState = nextState.copyWith(
+            errorDescription: controllerValue.errorDescription);
+      }
 
-    if (value.isLooping.value != controllerValue.isLooping) {
-      nextState = nextState.copyWith(isLooping: controllerValue.isLooping);
-    }
+      if (value.isLooping.value != controllerValue.isLooping) {
+        nextState = nextState.copyWith(isLooping: controllerValue.isLooping);
+      }
 
-    if (value.playbackSpeed.value != controllerValue.playbackSpeed) {
-      nextState =
-          nextState.copyWith(playbackSpeed: controllerValue.playbackSpeed);
-    }
+      if (value.playbackSpeed.value != controllerValue.playbackSpeed) {
+        nextState =
+            nextState.copyWith(playbackSpeed: controllerValue.playbackSpeed);
+      }
 
-    if (value != nextState) {
-      value = nextState;
-    }
+      if (value != nextState) {
+        value = nextState;
+      }
+    });
   }
 
   PlayState decipherPlayState(VideoPlayerValue controllerValue) {
