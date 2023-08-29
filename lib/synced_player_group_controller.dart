@@ -290,7 +290,7 @@ class SyncedPlayerGroupController extends GenericPlayerController {
       }
 
       // play
-      if (value.playState.value == PlayState.playing &&
+      if (groupState.playState.value == PlayState.playing &&
           childValue.playState.value == PlayState.paused &&
           childTargetInBounds) {
         debugPrint('child #$index played');
@@ -298,8 +298,8 @@ class SyncedPlayerGroupController extends GenericPlayerController {
       }
 
       // pause when paused/buffering
-      if ((value.playState.value == PlayState.paused ||
-              value.playState.value == PlayState.playingBuffering) &&
+      if ((groupState.playState.value == PlayState.paused ||
+          groupState.playState.value == PlayState.playingBuffering) &&
           childValue.playState.value == PlayState.playing) {
         debugPrint('child #$index paused');
         await childEntry.key.controller.pause();
