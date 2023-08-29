@@ -1,7 +1,7 @@
 import 'package:video_player/video_player.dart';
 
 import '../duration_range.dart';
-import '../synced_player.dart';
+import '../generic_player_controller.dart';
 import '../generic_player_state.dart';
 
 /// Wrapper for [VideoPlayerController]

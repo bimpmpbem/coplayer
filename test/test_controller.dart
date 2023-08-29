@@ -1,6 +1,6 @@
 import 'package:coplayer/duration_range.dart';
 import 'package:coplayer/generic_player_state.dart';
-import 'package:coplayer/synced_player.dart';
+import 'package:coplayer/generic_player_controller.dart';
 
 class TestController extends GenericPlayerController {
   TestController({GenericPlayerState? initialValue}) : super() {

@@ -7,7 +7,7 @@ import 'package:mutex/mutex.dart';
 
 import 'duration_range.dart';
 import 'generic_player_state.dart';
-import 'synced_player.dart';
+import 'generic_player_controller.dart';
 
 /// Configures a [GenericPlayerController] to be able to be managed by a
 /// [SyncedPlayerGroupController].

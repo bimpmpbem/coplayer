@@ -1,5 +1,5 @@
 import 'package:coplayer/snapshot.dart';
-import 'package:coplayer/synced_player.dart';
+import 'package:coplayer/generic_player_controller.dart';
 import 'package:flutter/foundation.dart';
 
 import 'duration_range.dart';
