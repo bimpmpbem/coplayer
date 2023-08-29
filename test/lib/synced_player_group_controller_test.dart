@@ -307,7 +307,7 @@ void main() {
       );
       expect(
         someGroup.children[1].controller.value.playState.value,
-        PlayState.playing,
+        PlayState.paused,
       );
       expect(
         someGroup.children[2].controller.value.playState.value,
@@ -316,7 +316,7 @@ void main() {
 
       expect(
         someGroup.value.position.value.inMilliseconds,
-        closeTo(0, 200),
+        closeTo(someGroup.value.positionRange.value.start.inMilliseconds, 200),
       );
     });
 
