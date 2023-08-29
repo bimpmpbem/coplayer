@@ -106,7 +106,9 @@ class SyncedPlayerGroupController extends GenericPlayerController {
 
     value = value.copyWith(
       playState: PlayState.playing,
-      position: value.position.value, // needed for estimations to work
+      position: value.atEnd
+          ? value.positionRange.value.start // restart if ended
+          : value.position.value, // keep value, refresh timestamp
     );
 
     await sync();
