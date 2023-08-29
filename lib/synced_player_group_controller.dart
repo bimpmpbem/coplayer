@@ -206,7 +206,7 @@ class SyncedPlayerGroupController extends GenericPlayerController {
       debugPrint('playState changed: playing -> buffering');
       combinedState = combinedState.copyWith(
         playState: PlayState.playingBuffering,
-        position: groupState.estimatedPosition, // refresh timestamp
+        position: groupState.position.value, // refresh timestamp
       );
     }
     //  buffering -> playing
