@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:dartx/dartx.dart';
@@ -50,6 +51,10 @@ class SyncedPlayerGroupController extends GenericPlayerController {
   });
 
   final Mutex _syncMutex = Mutex();
+  late Future<void> _syncFuture;
+  bool _pendingSync = false;
+  var _syncCount = 0;
+
   bool _disposed = false;
 
   // TODO add Logger
@@ -143,17 +148,19 @@ class SyncedPlayerGroupController extends GenericPlayerController {
     await sync();
   }
 
-  Future<void> _syncFromChildren() async {
-    // TODO add caching? there might be race conditions with `controller.value`
+  Future<GenericPlayerState> _syncFromChildren(
+    GenericPlayerState groupState,
+    Map<SyncedController, GenericPlayerState> childrenValues,
+  ) async {
+    var combinedState = groupState;
 
-    final earliestStart = children
-        .map((child) =>
-            child.controller.value.positionRange.value.start + child.offset)
+    final Duration? earliestStart = childrenValues.entries
+        .map(
+            (entry) => entry.value.positionRange.value.start + entry.key.offset)
         .min();
-    final latestEnd = children
-        .map((child) =>
-            child.controller.value.positionRange.value.endInclusive +
-            child.offset)
+    final latestEnd = childrenValues.entries
+        .map((entry) =>
+            entry.value.positionRange.value.endInclusive + entry.key.offset)
         .max();
 
     final totalRange = DurationRange(
@@ -162,90 +169,97 @@ class SyncedPlayerGroupController extends GenericPlayerController {
     );
 
     // positionRange
-    if (value.positionRange.value != totalRange) {
+    if (groupState.positionRange.value != totalRange) {
       debugPrint('positionRange changed to $totalRange');
-      value = value.copyWith(positionRange: totalRange);
+      combinedState = combinedState.copyWith(positionRange: totalRange);
     }
 
     // position
-    final newestPosition = children
-        .sortedByDescending(
-            (child) => child.controller.value.position.timestamp)
-        .filterNot((child) =>
-            child.controller.value.atEnd || child.controller.value.atStart)
-        .firstOrNullWhere((child) => child.controller.value.position.timestamp
-            .isAfter(value.position.timestamp))
-        ?.estimatedNormalizedPosition;
+    final newestPositionedChildren = childrenValues.entries
+        .sortedByDescending((entry) => entry.value.position.timestamp);
+    final newestPosition = newestPositionedChildren
+        .filterNot((entry) =>
+            entry.value.atEnd || entry.value.atStart) // estimated end?
+        .firstOrNullWhere((entry) => entry.value.position.timestamp
+            .isAfter(groupState.position.timestamp))
+        ?.key
+        .estimatedNormalizedPosition;
+
     if (newestPosition != null) {
       debugPrint('position changed to $newestPosition');
-      value = value.copyWith(position: newestPosition);
+      combinedState = combinedState.copyWith(position: newestPosition);
     }
 
     // playState
-    final anyBuffering = children.any((child) =>
-        child.controller.value.playState.value == PlayState.playingBuffering);
-    final sortedByPlayState = children
+    final anyBuffering = childrenValues.values.any((childValue) =>
+        childValue.playState.value == PlayState.playingBuffering);
+    final sortedByPlayState = childrenValues.entries
         // ignore invalid states
-        .filterNot((child) => !child.controller.value.positionRange.value
-            .contains(value.estimatedPosition - child.offset))
-        .sortedByDescending(
-            (child) => child.controller.value.playState.timestamp);
+        .filterNot((entry) => !entry.value.positionRange.value
+            .contains(groupState.estimatedPosition - entry.key.offset))
+        .sortedByDescending((entry) => entry.value.playState.timestamp);
 
     //  playing -> buffering
-    if (value.playState.value == PlayState.playing && anyBuffering) {
+    if (groupState.playState.value == PlayState.playing && anyBuffering) {
       debugPrint('playState changed: playing -> buffering');
-      value = value.copyWith(playState: PlayState.playingBuffering);
+      combinedState =
+          combinedState.copyWith(playState: PlayState.playingBuffering);
     }
     //  buffering -> playing
-    else if (value.playState.value == PlayState.playingBuffering &&
+    else if (groupState.playState.value == PlayState.playingBuffering &&
         !anyBuffering) {
       debugPrint('playState changed: buffering -> playing');
-      value = value.copyWith(playState: PlayState.playing);
+      combinedState = combinedState.copyWith(playState: PlayState.playing);
     }
 
     final playingIsNewest =
-        sortedByPlayState.firstOrNull?.controller.value.playState.value ==
+        sortedByPlayState.firstOrNull?.value.playState.value ==
                 PlayState.playing &&
-            sortedByPlayState.firstOrNull?.controller.value.playState.timestamp
-                    .isAfter(value.playState.timestamp) ==
+            sortedByPlayState.firstOrNull?.value.playState.timestamp
+                    .isAfter(groupState.playState.timestamp) ==
                 true;
     final pausedIsNewest =
-        sortedByPlayState.firstOrNull?.controller.value.playState.value ==
+        sortedByPlayState.firstOrNull?.value.playState.value ==
                 PlayState.paused &&
-            sortedByPlayState.firstOrNull?.controller.value.playState.timestamp
-                    .isAfter(value.playState.timestamp) ==
+            sortedByPlayState.firstOrNull?.value.playState.timestamp
+                    .isAfter(groupState.playState.timestamp) ==
                 true;
     //  paused -> playing
-    if (value.playState.value == PlayState.paused && playingIsNewest) {
+    if (groupState.playState.value == PlayState.paused && playingIsNewest) {
       debugPrint('playState changed: paused -> playing');
-      value = value.copyWith(
+      combinedState = combinedState.copyWith(
         playState: PlayState.playing,
-        position: value.position.value, // needed for correct estimations
+        position: groupState.position.value, // needed for correct estimations
       );
     }
     //  playing -> paused
-    else if (value.playState.value == PlayState.playing && pausedIsNewest) {
+    else if (groupState.playState.value == PlayState.playing &&
+        pausedIsNewest) {
       debugPrint('playState changed: playing -> paused');
-      value = value.copyWith(playState: PlayState.paused);
+      combinedState = combinedState.copyWith(playState: PlayState.paused);
     }
 
     //  buffering -> paused
     //   does not happen automatically from children
 
     // TODO speed
+
+    return combinedState;
   }
 
-  Future<void> _syncToChildren() async {
-    final targetPosition = value.estimatedPosition;
-
+  Future<void> _syncToChildren(
+    GenericPlayerState groupState,
+    Map<SyncedController, GenericPlayerState> childrenValues,
+  ) async {
     // TODO check if any child is disposed?
+    // TODO initialize uninitialized children?
 
-    // children from parent
-    for (final (index, child) in children.indexed) {
-      final childValue = child.controller.value;
+    for (final (index, childEntry) in childrenValues.entries.indexed) {
+      final childValue = childEntry.value;
 
       final childPosition = childValue.estimatedPosition;
-      final childTargetPosition = targetPosition - child.offset;
+      final childTargetPosition =
+          groupState.estimatedPosition - childEntry.key.offset;
       final childTargetPositionRange =
           childTargetPosition.addMargin(marginOfError);
 
@@ -256,14 +270,14 @@ class SyncedPlayerGroupController extends GenericPlayerController {
       if (childPosition.inRange(childTargetPositionRange) == false &&
           childTargetInBounds) {
         debugPrint('child #$index position set to $childTargetPosition');
-        await child.controller.setPosition(childTargetPosition);
+        await childEntry.key.controller.setPosition(childTargetPosition);
       }
       // setPosition clamp to end
       else if (!childValue.atEnd &&
           childTargetPosition > childValue.positionRange.value.endInclusive) {
         debugPrint(
             'child #$index position clamped to ${childValue.positionRange.value.endInclusive}');
-        await child.controller
+        await childEntry.key.controller
             .setPosition(childValue.positionRange.value.endInclusive);
       }
       // setPosition clamp to start
@@ -271,7 +285,7 @@ class SyncedPlayerGroupController extends GenericPlayerController {
           childTargetPosition < childValue.positionRange.value.start) {
         debugPrint(
             'child #$index position clamped to ${childValue.positionRange.value.start}');
-        await child.controller
+        await childEntry.key.controller
             .setPosition(childValue.positionRange.value.start);
       }
 
@@ -280,7 +294,7 @@ class SyncedPlayerGroupController extends GenericPlayerController {
           childValue.playState.value == PlayState.paused &&
           childTargetInBounds) {
         debugPrint('child #$index played');
-        await child.controller.play();
+        await childEntry.key.controller.play();
       }
 
       // pause when paused/buffering
@@ -288,14 +302,14 @@ class SyncedPlayerGroupController extends GenericPlayerController {
               value.playState.value == PlayState.playingBuffering) &&
           childValue.playState.value == PlayState.playing) {
         debugPrint('child #$index paused');
-        await child.controller.pause();
+        await childEntry.key.controller.pause();
       }
 
       // pause when out of bounds
       if (childValue.playState.value != PlayState.paused &&
           !childTargetInBounds) {
         debugPrint('child #$index paused (out of bounds)');
-        await child.controller.pause();
+        await childEntry.key.controller.pause();
       }
     }
   }
@@ -309,24 +323,55 @@ class SyncedPlayerGroupController extends GenericPlayerController {
         _disposed ||
         children.isEmpty) return;
 
-    // TODO add debouncing logic/redundancy check
+    _pendingSync = true;
 
-    await _syncMutex.protect(() async {
-      debugPrint("SYNC iteration:");
-      children.forEachIndexed((child, i) {
-        debugPrint("child #$i: ${child.controller.value.toStringCompact()}");
-      });
+    // redundancy check
+    if (_syncMutex.isLocked) {
+      debugPrint('(SYNC called, but ignored for ${_syncFuture.hashCode})');
+      await _syncFuture;
+      return;
+    }
 
-      // TODO initialize uninitialized children?
+    final syncNum = _syncCount;
+    _syncCount += 1;
 
-      await _syncFromChildren();
-      await _syncToChildren();
+    _syncFuture = _syncMutex.protect(() async {
+      debugPrint("SYNC START #$syncNum (${_syncFuture.hashCode})");
+      var iteration = 0;
+      while (_pendingSync) {
+        _pendingSync = false;
+        debugPrint("SYNC iteration #$iteration:");
+        children.forEachIndexed((child, i) {
+          debugPrint("child #$i: ${child.controller.value.toStringCompact()}");
+        });
 
-      debugPrint("SYNC done:");
-      debugPrint("group: ${value.toStringCompact()}");
-      children.forEachIndexed((child, i) {
-        debugPrint("child #$i: ${child.controller.value.toStringCompact()}");
-      });
+        // caching to prevent race conditions
+        final groupValue = value;
+        final childrenValues = {
+          for (final child in children) child: child.controller.value
+        };
+
+        final newGroupValue =
+            await _syncFromChildren(groupValue, childrenValues);
+        await _syncToChildren(newGroupValue, childrenValues);
+        value = newGroupValue;
+
+        debugPrint("SYNC done:");
+        debugPrint("group: ${value.toStringCompact()}");
+        children.forEachIndexed((child, i) {
+          debugPrint("child #$i: ${child.controller.value.toStringCompact()}");
+        });
+
+        // needed because DateTime.now() resolution is too imprecise,
+        // sync might get confused on what value is actually latest.
+        // the delay makes sure the time is different between each sync attempt.
+        // TODO replace DateTime with different library?
+        sleep(const Duration(milliseconds: 2));
+
+        iteration += 1;
+      }
+      debugPrint("SYNC END #$syncNum (${_syncFuture.hashCode})");
     });
+    await _syncFuture;
   }
 }
