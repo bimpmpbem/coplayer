@@ -29,12 +29,12 @@ class SimpleVideoController extends GenericPlayerController {
       playbackSpeed: controllerValue.playbackSpeed,
     );
 
-    videoPlayerController.addListener(_listener);
+    videoPlayerController.addListener(_updateState);
   }
 
   @override
   Future<void> dispose() async {
-    videoPlayerController.removeListener(_listener);
+    videoPlayerController.removeListener(_updateState);
     await videoPlayerController.dispose();
     super.dispose();
   }
@@ -57,7 +57,7 @@ class SimpleVideoController extends GenericPlayerController {
   Future<void> setPlaybackSpeed(double speed) =>
       videoPlayerController.setPlaybackSpeed(speed);
 
-  Future<void> _listener() async {
+  Future<void> _updateState() async {
     GenericPlayerState nextState = value;
     final controllerValue = videoPlayerController.value;
 
