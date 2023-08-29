@@ -204,14 +204,19 @@ class SyncedPlayerGroupController extends GenericPlayerController {
     //  playing -> buffering
     if (groupState.playState.value == PlayState.playing && anyBuffering) {
       debugPrint('playState changed: playing -> buffering');
-      combinedState =
-          combinedState.copyWith(playState: PlayState.playingBuffering);
+      combinedState = combinedState.copyWith(
+        playState: PlayState.playingBuffering,
+        position: groupState.estimatedPosition, // refresh timestamp
+      );
     }
     //  buffering -> playing
     else if (groupState.playState.value == PlayState.playingBuffering &&
         !anyBuffering) {
       debugPrint('playState changed: buffering -> playing');
-      combinedState = combinedState.copyWith(playState: PlayState.playing);
+      combinedState = combinedState.copyWith(
+        playState: PlayState.playing,
+        position: groupState.estimatedPosition, // refresh timestamp
+      );
     }
 
     final playingIsNewest =
@@ -231,14 +236,17 @@ class SyncedPlayerGroupController extends GenericPlayerController {
       debugPrint('playState changed: paused -> playing');
       combinedState = combinedState.copyWith(
         playState: PlayState.playing,
-        position: groupState.position.value, // needed for correct estimations
+        position: groupState.estimatedPosition, // refresh timestamp
       );
     }
     //  playing -> paused
     else if (groupState.playState.value == PlayState.playing &&
         pausedIsNewest) {
       debugPrint('playState changed: playing -> paused');
-      combinedState = combinedState.copyWith(playState: PlayState.paused);
+      combinedState = combinedState.copyWith(
+        playState: PlayState.paused,
+        position: groupState.estimatedPosition, // refresh timestamp
+      );
     }
 
     //  buffering -> paused
