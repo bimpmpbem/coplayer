@@ -301,7 +301,7 @@ class SyncedPlayerGroupController extends GenericPlayerController {
 
       // pause when paused/buffering
       if ((groupState.playState.value == PlayState.paused ||
-          groupState.playState.value == PlayState.playingBuffering) &&
+              groupState.playState.value == PlayState.playingBuffering) &&
           childValue.playState.value == PlayState.playing) {
         debugPrint('child #$index paused');
         await childEntry.key.controller.pause();
