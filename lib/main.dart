@@ -117,6 +117,8 @@ class _MyHomePageState extends State<MyHomePage> {
               icon: const Icon(Icons.play_arrow)),
           IconButton(
               onPressed: () => group?.pause(), icon: const Icon(Icons.pause)),
+          IconButton(
+              onPressed: () => group?.sync(), icon: const Icon(Icons.refresh)),
         ],
       ),
       body: Center(
