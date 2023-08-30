@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dartx/dartx.dart';
 
 import 'package:video_player/video_player.dart';
 import 'package:fvp/fvp.dart';
@@ -6,6 +7,7 @@ import 'package:chewie/chewie.dart';
 
 import 'synced_player_group_controller.dart';
 import 'video/simple_video_controller.dart';
+import 'generic_player_controls.dart';
 
 void main() {
   registerWith();
@@ -56,40 +58,65 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> initPlayer(String url) async {
-    final group = SyncedPlayerGroupController(children: [
-      SyncedController(
-        SimpleVideoController(
-          videoPlayerController: VideoPlayerController.networkUrl(
-            Uri.parse(url),
-            videoPlayerOptions: VideoPlayerOptions(
-              allowBackgroundPlayback: true,
-              mixWithOthers: true,
+    final group = SyncedPlayerGroupController(
+      children: [
+        SyncedController(
+          SimpleVideoController(
+            videoPlayerController: VideoPlayerController.networkUrl(
+              Uri.parse(url),
+              videoPlayerOptions: VideoPlayerOptions(
+                allowBackgroundPlayback: true,
+                mixWithOthers: true,
+              ),
+            ),
+          ),
+          offset: const Duration(seconds: -10),
+        ),
+        SyncedController(
+          SimpleVideoController(
+            videoPlayerController: VideoPlayerController.networkUrl(
+              Uri.parse(url),
+              videoPlayerOptions: VideoPlayerOptions(
+                allowBackgroundPlayback: true,
+                mixWithOthers: true,
+              ),
             ),
           ),
         ),
-        offset: const Duration(seconds: -10),
-      ),
-      SyncedController(
-        SimpleVideoController(
-          videoPlayerController: VideoPlayerController.networkUrl(
-            Uri.parse(url),
-            videoPlayerOptions: VideoPlayerOptions(
-              allowBackgroundPlayback: true,
-              mixWithOthers: true,
+        SyncedController(
+          SimpleVideoController(
+            videoPlayerController: VideoPlayerController.networkUrl(
+              Uri.parse(url),
+              videoPlayerOptions: VideoPlayerOptions(
+                allowBackgroundPlayback: true,
+                mixWithOthers: true,
+              ),
             ),
           ),
+          offset: const Duration(seconds: 10),
         ),
-      ),
-    ]);
+      ],
+      marginOfError: const Duration(seconds: 2),
+    );
 
     await group.initialize();
+
+    for (final child in group.children) {
+      child.controller.addListener(() => setState(() {}));
+    }
+
+    group.addListener(() {
+      setState(() {});
+    });
 
     setState(() {
       this.group = group;
       chewies = group.children
           .map((e) => ChewieController(
-              videoPlayerController: (e.controller as SimpleVideoController)
-                  .videoPlayerController))
+                videoPlayerController: (e.controller as SimpleVideoController)
+                    .videoPlayerController,
+                progressIndicatorDelay: null,
+              ))
           .toList();
     });
   }
@@ -121,19 +148,34 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: () => group?.sync(), icon: const Icon(Icons.refresh)),
         ],
       ),
-      body: Center(
-          child: group == null
-              ? const CircularProgressIndicator()
-              : ListView(
-                  children: chewies.map((e) => _buildVideo(e)).toList())),
+      body: group == null
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              children: [
+                GenericPlayerControls(
+                  state: group.value,
+                  onPositionChanged: (newPosition) {
+                    group.setPosition(newPosition);
+                  },
+                ),
+                ...chewies.zip(group.children,
+                    (chewie, synced) => _buildVideo(chewie, synced))
+              ],
+            ),
     );
   }
 
-  Widget _buildVideo(ChewieController? controller) => controller != null
-      ? AspectRatio(
-          aspectRatio: controller.videoPlayerController.value.aspectRatio,
-          child: Container(
-              color: Colors.black, child: Chewie(controller: controller)),
-        )
-      : const Center(child: CircularProgressIndicator());
+  Widget _buildVideo(ChewieController chewie, SyncedController synced) {
+    return Stack(
+      children: [
+        AspectRatio(
+          aspectRatio: chewie.videoPlayerController.value.aspectRatio,
+          child:
+              Container(color: Colors.black, child: Chewie(controller: chewie)),
+        ),
+        Text(synced.controller.value.toStringCompact(),
+            style: const TextStyle(backgroundColor: Colors.white)),
+      ],
+    );
+  }
 }
