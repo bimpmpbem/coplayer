@@ -1,6 +1,7 @@
-import 'package:coplayer/duration_extensions.dart';
-import 'package:coplayer/generic_player_state.dart';
 import 'package:flutter/material.dart';
+
+import 'duration_extensions.dart';
+import 'generic_player_state.dart';
 
 class GenericPlayerControls extends StatefulWidget {
   const GenericPlayerControls({
