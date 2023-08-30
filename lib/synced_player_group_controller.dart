@@ -41,14 +41,18 @@ class SyncedController {
 /// positions which are out of bounds for all of the controllers
 /// ('holes' in playback).
 class SyncedPlayerGroupController extends GenericPlayerController {
-  // TODO make immutable from outside the class, or allow adding/removing children properly
-  final List<SyncedController> children;
-  Duration marginOfError;
-
   SyncedPlayerGroupController({
     required this.children,
     this.marginOfError = const Duration(milliseconds: 200),
+    this.syncPeriod = const Duration(milliseconds: 200),
   });
+
+  // TODO make immutable from outside the class, or allow adding/removing children properly
+  final List<SyncedController> children;
+  final Duration marginOfError;
+  final Duration? syncPeriod;
+
+  Timer? _syncTimer;
 
   final Mutex _syncMutex = Mutex();
   late Future<void> _syncFuture;
@@ -74,7 +78,7 @@ class SyncedPlayerGroupController extends GenericPlayerController {
       if (child.controller.value.playState.value == PlayState.uninitialized) {
         await child.controller.initialize();
       }
-      child.controller.addListener(sync);
+      // child.controller.addListener(sync);
     }
 
     value = value.copyWith(playState: PlayState.paused);
@@ -87,9 +91,9 @@ class SyncedPlayerGroupController extends GenericPlayerController {
   Future<void> dispose() async {
     if (value.playState.value == PlayState.uninitialized || _disposed) return;
 
-    for (final child in children) {
-      child.controller.removeListener(sync);
-    }
+    // for (final child in children) {
+    //   child.controller.removeListener(sync);
+    // }
     _disposed = true;
 
     super.dispose();
@@ -186,8 +190,9 @@ class SyncedPlayerGroupController extends GenericPlayerController {
             .isAfter(groupState.position.timestamp))
         ?.key
         .estimatedNormalizedPosition;
-
-    if (newestPosition != null) {
+    if (newestPosition != null &&
+        !groupState.estimatedPosition
+            .inRange(newestPosition.addMargin(marginOfError))) {
       debugPrint('position changed to $newestPosition');
       combinedState = combinedState.copyWith(position: newestPosition);
     }
@@ -346,6 +351,7 @@ class SyncedPlayerGroupController extends GenericPlayerController {
     _syncCount += 1;
 
     _syncFuture = _syncMutex.protect(() async {
+      _syncTimer?.cancel();
       debugPrint("SYNC START #$syncNum (${_syncFuture.hashCode})");
       var iteration = 0;
       while (_pendingSync) {
@@ -381,6 +387,11 @@ class SyncedPlayerGroupController extends GenericPlayerController {
         iteration += 1;
       }
       debugPrint("SYNC END #$syncNum (${_syncFuture.hashCode})");
+
+      final syncPeriod = this.syncPeriod;
+      if (syncPeriod != null) {
+        _syncTimer = Timer(syncPeriod, sync);
+      }
     });
     await _syncFuture;
   }
