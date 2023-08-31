@@ -1,8 +1,9 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:dartx/dartx.dart';
+import 'package:logger/logger.dart';
 import 'package:mutex/mutex.dart';
 
 import 'duration_range.dart';
@@ -61,24 +62,30 @@ class SyncedPlayerGroupController extends GenericPlayerController {
 
   bool _disposed = false;
 
-  // TODO add Logger
+  final _memoryOutput = MemoryOutput(bufferSize: 200);
+  late final _logger = Logger(
+    output: _memoryOutput,
+    printer: PrettyPrinter(
+      printTime: true,
+      methodCount: 0,
+    ),
+  );
+
+  List<OutputEvent> get logOutput => _memoryOutput.buffer.toUnmodifiable();
 
   @override
   Future<void> initialize() async {
     if (value.playState.value != PlayState.uninitialized || _disposed) return;
 
-    if (kDebugMode) {
-      addListener(() {
-        debugPrint("value changed: ${value.toStringCompact()}");
-      });
-    }
+    addListener(() {
+      _logger.d("value changed: ${value.toStringCompact()}");
+    });
 
     // initialize children
     for (final child in children) {
       if (child.controller.value.playState.value == PlayState.uninitialized) {
         await child.controller.initialize();
       }
-      // child.controller.addListener(sync);
     }
 
     value = value.copyWith(playState: PlayState.paused);
@@ -91,9 +98,6 @@ class SyncedPlayerGroupController extends GenericPlayerController {
   Future<void> dispose() async {
     if (value.playState.value == PlayState.uninitialized || _disposed) return;
 
-    // for (final child in children) {
-    //   child.controller.removeListener(sync);
-    // }
     _disposed = true;
 
     super.dispose();
@@ -176,7 +180,7 @@ class SyncedPlayerGroupController extends GenericPlayerController {
 
     // positionRange
     if (groupState.positionRange.value != totalRange) {
-      debugPrint('positionRange changed to $totalRange');
+      _logger.d('positionRange changed to $totalRange');
       combinedState = combinedState.copyWith(positionRange: totalRange);
     }
 
@@ -193,7 +197,7 @@ class SyncedPlayerGroupController extends GenericPlayerController {
     if (newestPosition != null &&
         !groupState.estimatedPosition
             .inRange(newestPosition.addMargin(marginOfError))) {
-      debugPrint('position changed to $newestPosition');
+      _logger.d('position changed to $newestPosition');
       combinedState = combinedState.copyWith(position: newestPosition);
     }
 
@@ -208,7 +212,7 @@ class SyncedPlayerGroupController extends GenericPlayerController {
 
     //  playing -> buffering
     if (groupState.playState.value == PlayState.playing && anyBuffering) {
-      debugPrint('playState changed: playing -> buffering');
+      _logger.d('playState changed: playing -> buffering');
       combinedState = combinedState.copyWith(
         playState: PlayState.playingBuffering,
         position: groupState.position.value, // refresh timestamp
@@ -217,7 +221,7 @@ class SyncedPlayerGroupController extends GenericPlayerController {
     //  buffering -> playing
     else if (groupState.playState.value == PlayState.playingBuffering &&
         !anyBuffering) {
-      debugPrint('playState changed: buffering -> playing');
+      _logger.d('playState changed: buffering -> playing');
       combinedState = combinedState.copyWith(
         playState: PlayState.playing,
         position: groupState.estimatedPosition, // refresh timestamp
@@ -238,7 +242,7 @@ class SyncedPlayerGroupController extends GenericPlayerController {
                 true;
     //  paused -> playing
     if (groupState.playState.value == PlayState.paused && playingIsNewest) {
-      debugPrint('playState changed: paused -> playing');
+      _logger.d('playState changed: paused -> playing');
       combinedState = combinedState.copyWith(
         playState: PlayState.playing,
         position: groupState.estimatedPosition, // refresh timestamp
@@ -247,7 +251,7 @@ class SyncedPlayerGroupController extends GenericPlayerController {
     //  playing -> paused
     else if (groupState.playState.value == PlayState.playing &&
         pausedIsNewest) {
-      debugPrint('playState changed: playing -> paused');
+      _logger.d('playState changed: playing -> paused');
       combinedState = combinedState.copyWith(
         playState: PlayState.paused,
         position: groupState.estimatedPosition, // refresh timestamp
@@ -284,13 +288,13 @@ class SyncedPlayerGroupController extends GenericPlayerController {
       // setPosition in range
       if (childPosition.inRange(childTargetPositionRange) == false &&
           childTargetInBounds) {
-        debugPrint('child #$index position set to $childTargetPosition');
+        _logger.d('child #$index position set to $childTargetPosition');
         await childEntry.key.controller.setPosition(childTargetPosition);
       }
       // setPosition clamp to end
       else if (!childValue.atEnd &&
           childTargetPosition > childValue.positionRange.value.endInclusive) {
-        debugPrint(
+        _logger.d(
             'child #$index position clamped to ${childValue.positionRange.value.endInclusive}');
         await childEntry.key.controller
             .setPosition(childValue.positionRange.value.endInclusive);
@@ -298,7 +302,7 @@ class SyncedPlayerGroupController extends GenericPlayerController {
       // setPosition clamp to start
       else if (!childValue.atStart &&
           childTargetPosition < childValue.positionRange.value.start) {
-        debugPrint(
+        _logger.d(
             'child #$index position clamped to ${childValue.positionRange.value.start}');
         await childEntry.key.controller
             .setPosition(childValue.positionRange.value.start);
@@ -308,7 +312,7 @@ class SyncedPlayerGroupController extends GenericPlayerController {
       if (groupState.playState.value == PlayState.playing &&
           childValue.playState.value == PlayState.paused &&
           childTargetInBounds) {
-        debugPrint('child #$index played');
+        _logger.d('child #$index played');
         await childEntry.key.controller.play();
       }
 
@@ -316,14 +320,14 @@ class SyncedPlayerGroupController extends GenericPlayerController {
       if ((groupState.playState.value == PlayState.paused ||
               groupState.playState.value == PlayState.playingBuffering) &&
           childValue.playState.value == PlayState.playing) {
-        debugPrint('child #$index paused');
+        _logger.d('child #$index paused');
         await childEntry.key.controller.pause();
       }
 
       // pause when out of bounds
       if (childValue.playState.value != PlayState.paused &&
           !childTargetInBounds) {
-        debugPrint('child #$index paused (out of bounds)');
+        _logger.d('child #$index paused (out of bounds)');
         await childEntry.key.controller.pause();
       }
     }
@@ -342,7 +346,7 @@ class SyncedPlayerGroupController extends GenericPlayerController {
 
     // redundancy check
     if (_syncMutex.isLocked) {
-      debugPrint('(SYNC called, but ignored for ${_syncFuture.hashCode})');
+      _logger.d('(SYNC called, but ignored for ${_syncFuture.hashCode})');
       await _syncFuture;
       return;
     }
@@ -352,14 +356,17 @@ class SyncedPlayerGroupController extends GenericPlayerController {
 
     _syncFuture = _syncMutex.protect(() async {
       _syncTimer?.cancel();
-      debugPrint("SYNC START #$syncNum (${_syncFuture.hashCode})");
+      _logger.d("SYNC START #$syncNum (${_syncFuture.hashCode})");
       var iteration = 0;
       while (_pendingSync) {
         _pendingSync = false;
-        debugPrint("SYNC iteration #$iteration:");
-        children.forEachIndexed((child, i) {
-          debugPrint("child #$i: ${child.controller.value.toStringCompact()}");
-        });
+        _logger.d(buildString((sb) {
+          sb.write("SYNC iteration #$iteration:\n");
+          sb.write(children
+              .map((e) => e.controller.value.toStringCompact())
+              .mapIndexed((index, str) => "child #$index: $str")
+              .join('\n'));
+        }));
 
         // caching to prevent race conditions
         final groupValue = value;
@@ -372,11 +379,14 @@ class SyncedPlayerGroupController extends GenericPlayerController {
         await _syncToChildren(newGroupValue, childrenValues);
         value = newGroupValue;
 
-        debugPrint("SYNC done:");
-        debugPrint("group: ${value.toStringCompact()}");
-        children.forEachIndexed((child, i) {
-          debugPrint("child #$i: ${child.controller.value.toStringCompact()}");
-        });
+        _logger.d(buildString((sb) {
+          sb.write("SYNC done:\n");
+          sb.write("group: ${value.toStringCompact()}\n");
+          sb.write(children
+              .map((e) => e.controller.value.toStringCompact())
+              .mapIndexed((index, str) => "child #$index: $str")
+              .join('\n'));
+        }));
 
         // needed because DateTime.now() resolution is too imprecise,
         // sync might get confused on what value is actually latest.
@@ -386,7 +396,7 @@ class SyncedPlayerGroupController extends GenericPlayerController {
 
         iteration += 1;
       }
-      debugPrint("SYNC END #$syncNum (${_syncFuture.hashCode})");
+      _logger.d("SYNC END #$syncNum (${_syncFuture.hashCode})");
 
       final syncPeriod = this.syncPeriod;
       if (syncPeriod != null) {

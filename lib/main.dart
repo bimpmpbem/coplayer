@@ -146,6 +146,12 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: () => group?.pause(), icon: const Icon(Icons.pause)),
           IconButton(
               onPressed: () => group?.sync(), icon: const Icon(Icons.refresh)),
+          IconButton(
+            onPressed: () => group?.logOutput.forEach((event) {
+              event.lines.forEach(debugPrint);
+            }),
+            icon: const Icon(Icons.bug_report),
+          ),
         ],
       ),
       body: group == null
