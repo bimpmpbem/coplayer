@@ -35,16 +35,21 @@ dependencies:
   dartx: ^1.2.0
   logger: ^2.0.1
 
-  # flutter_platform_widgets: ^3.3.5
-  # flutter_extended_platform_widgets
-  # platform_ui: ^0.1.0
+  # flutter_platform_widgets: ^3.3.5 # easier material/cupertino
+  # flutter_extended_platform_widgets # easier material/cupertino/fluent/linux/macOS
+  # platform_ui: ^0.1.0 # easier material/cupertino/fluent/adwaita/macOS
+
+  # flutter_native_splash: ^2.3.2 # splash screen stuff
+
+  # desktop specific
+  # bitsdojo_window: ^0.1.5 # customize window look
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.5
+  cupertino_icons: ^1.0.6
 
   # local/network video
-  video_player: ^2.7.0 # android, iOS, web
+  video_player: ^2.7.1 # android, iOS, web
   # video_player_win: ^2.2.2 # windows, potentially unstable
   fvp: ^0.4.0 # for video_player, alternative implementation for all platforms
 
@@ -58,8 +63,8 @@ dependencies:
   youtube_player_iframe: ^4.0.4 # android, iOS, web
   # youtube_explode_dart: ^1.12.4 # android, iOS, web, desktop. might be overkill
 
-  # desktop
-  # bitsdojo_window: ^0.1.5 # customize window look
+  # file_selector: ^1.0.1
+  # file_picker: ^5.5.0
 
 dev_dependencies:
   flutter_test:
@@ -70,7 +75,9 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^2.0.2
+  flutter_lints: ^2.0.3
+
+  # flutter_launcher_icons: "^0.13.1"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
