@@ -33,13 +33,22 @@ dependencies:
 
   mutex: ^3.0.1
   dartx: ^1.2.0
-  logger: ^2.0.1
+  logger: ^2.0.2
+  collection: ^1.17.2
+  equatable: ^2.0.0
+
+  # scrollable_positioned_list: ^0.3.8
+  # infinite_listview: ^1.1.0
+  # bidirectional_listview: ^1.0.3
+  # flutter_list_view: ^1.1.21
+  infinite_scroll_pagination: ^4.0.0
 
   # flutter_platform_widgets: ^3.3.5 # easier material/cupertino
   # flutter_extended_platform_widgets # easier material/cupertino/fluent/linux/macOS
   # platform_ui: ^0.1.0 # easier material/cupertino/fluent/adwaita/macOS
 
-  # flutter_native_splash: ^2.3.2 # splash screen stuff
+  # splash screen
+  # flutter_native_splash: ^2.3.2 
 
   # desktop specific
   # bitsdojo_window: ^0.1.5 # customize window look
@@ -47,6 +56,33 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
+
+  # data
+  isar: ^3.1.0+1 # no web (yet)
+  isar_flutter_libs: ^3.1.0+1
+
+  # images
+  flutter_svg: 2.0.7 # svg support
+  # extended_image: ^8.1.1 # for less memory leaks/better caching?
+  transparent_image: ^2.0.1
+  flutter_cache_manager: ^3.3.1
+  cached_network_image: ^3.2.3 # uses flutter_cache_manager
+
+  # image generation from widgets
+  # screenshot: ^2.1.0
+
+  # tooltips
+  just_the_tooltip: ^0.0.12
+
+  # readable file size
+  filesize: ^2.0.1 
+
+  # scrollbars
+  flutter_xlider: ^3.5.0
+  # syncfusion_flutter_sliders: ^22.2.12 # has weird license
+
+  # loading indicators
+  shimmer: ^3.0.0
 
   # local/network video
   video_player: ^2.7.1 # android, iOS, web
@@ -61,10 +97,16 @@ dependencies:
 
   # youtube
   youtube_player_iframe: ^4.0.4 # android, iOS, web
-  # youtube_explode_dart: ^1.12.4 # android, iOS, web, desktop. might be overkill
+  # youtube_explode_dart: ^1.12.4 # android, iOS, web, desktop. might be overkill. also no chat.
 
-  # file_selector: ^1.0.1
-  # file_picker: ^5.5.0
+  # file picking stuff
+  cross_file: ^0.3.3+5 # XFile
+  # file_selector: ^1.0.1 # uses XFile, causes out-of-memory errors
+  file_picker: ^5.5.0 # uses PlatformFile
+  desktop_drop: ^0.4.3 # uses XFile
+
+  path_provider: ^2.1.1
+  path: ^1.8.3
 
 dev_dependencies:
   flutter_test:
@@ -76,6 +118,12 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^2.0.3
+
+  build_runner: ^2.0.0
+  isar_generator: ^3.1.0+1
+  # objectbox_generator: any
+  # drift_dev: ^2.12.1
+
 
   # flutter_launcher_icons: "^0.13.1"
 

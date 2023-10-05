@@ -1,13 +1,21 @@
-import 'package:flutter/material.dart';
-import 'package:dartx/dartx.dart';
+import 'dart:async';
 
-import 'package:video_player/video_player.dart';
-import 'package:fvp/fvp.dart';
 import 'package:chewie/chewie.dart';
+import 'package:cross_file/cross_file.dart';
+import 'package:dartx/dartx.dart';
+import 'package:flutter/material.dart';
+import 'package:fvp/fvp.dart';
+import 'package:logger/logger.dart';
+import 'package:video_player/video_player.dart';
 
+import 'chat/chat_controller.dart';
+import 'chat/data/chat_data.dart';
+import 'chat/widgets/chat_box.dart';
+import 'chat/widgets/chat_load_progress.dart';
+import 'file_required.dart';
+import 'generic_player_controls.dart';
 import 'synced_player_group_controller.dart';
 import 'video/simple_video_controller.dart';
-import 'generic_player_controls.dart';
 
 void main() {
   registerWith();
@@ -43,6 +51,19 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   SyncedPlayerGroupController? group;
   List<ChewieController> chewies = [];
+  ChatController? chatController;
+
+  final loggerOutput = MemoryOutput(
+    bufferSize: 200,
+  );
+  late final logger = Logger(
+    output: loggerOutput,
+  );
+
+  ChatMetadata? _chatLoadMetadata;
+  int _chatLoadedBytes = 0;
+  int? _chatTotalBytes = 0;
+  bool _chatLoading = false;
 
   @override
   void initState() {
@@ -132,43 +153,135 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final group = this.group; // null safety
-
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-        actions: [
-          IconButton(
-              onPressed: () => group?.play(),
-              icon: const Icon(Icons.play_arrow)),
-          IconButton(
-              onPressed: () => group?.pause(), icon: const Icon(Icons.pause)),
-          IconButton(
-              onPressed: () => group?.sync(), icon: const Icon(Icons.refresh)),
-          IconButton(
-            onPressed: () => group?.logOutput.forEach((event) {
-              event.lines.forEach(debugPrint);
-            }),
-            icon: const Icon(Icons.bug_report),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+          appBar: AppBar(
+            backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+            title: Text(widget.title),
+            actions: [
+              IconButton(
+                  onPressed: () => group?.play(),
+                  icon: const Icon(Icons.play_arrow)),
+              IconButton(
+                  onPressed: () => group?.pause(),
+                  icon: const Icon(Icons.pause)),
+              IconButton(
+                  onPressed: () => group?.sync(),
+                  icon: const Icon(Icons.refresh)),
+              IconButton(
+                onPressed: () {
+                  for (final event in loggerOutput.buffer) {
+                    event.lines.forEach(debugPrint);
+                  }
+                },
+                icon: const Icon(Icons.bug_report),
+              ),
+            ],
+            bottom: const TabBar(tabs: [
+              Tab(text: "Video"),
+              Tab(text: "Chat"),
+            ]),
           ),
-        ],
-      ),
-      body: group == null
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              children: [
-                GenericPlayerControls(
-                  state: group.value,
-                  onPositionChanged: (newPosition) {
-                    group.setPosition(newPosition);
-                  },
-                ),
-                ...chewies.zip(group.children,
-                    (chewie, synced) => _buildVideo(chewie, synced))
-              ],
-            ),
+          body: TabBarView(children: [
+            _buildVideos(),
+            _buildChat(),
+          ])),
     );
+  }
+
+  Widget _buildChat() {
+    final chatController = this.chatController;
+
+    Widget? child;
+
+    // loaded
+    if (chatController != null) {
+      child = ChatBox(controller: chatController);
+    }
+
+    // loading
+    if (_chatLoading) {
+      child = ChatLoadProgress(
+        chatLoadedBytes: _chatLoadedBytes,
+        chatTotalBytes: _chatTotalBytes,
+        chatLoadMetadata: _chatLoadMetadata,
+      );
+    }
+
+    return FileRequired(
+      icon: Icons.chat,
+      text: "Pick chat replay file (.json)",
+      onFileChosen: _loadChat,
+      child: child,
+    );
+  }
+
+  void _loadChat(XFile file) async {
+    if (_chatLoading) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text("Already loading...")));
+      }
+      return;
+    }
+
+    final size = await file.length();
+    setState(() {
+      _chatTotalBytes = size;
+      _chatLoadedBytes = 0;
+      _chatLoading = true;
+    });
+
+    debugPrint("Load size: $_chatTotalBytes");
+
+    await chatController?.dispose();
+
+    chatController = await ChatController.parseFile(
+      file,
+      logger: logger,
+      onProgress: (metadata, parsedBytes, totalBytes) {
+        setState(() {
+          _chatLoadMetadata = metadata;
+          _chatTotalBytes = totalBytes;
+          _chatLoadedBytes = parsedBytes;
+        });
+      },
+      inMemory: false,
+    );
+
+    if (chatController == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text("Parsing failed.")));
+      }
+      setState(() {
+        _chatLoading = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _chatLoading = false;
+    });
+  }
+
+  Widget _buildVideos() {
+    final group = this.group;
+    return group == null
+        ? const Center(child: CircularProgressIndicator())
+        : ListView(
+            children: [
+              GenericPlayerControls(
+                state: group.value,
+                onPositionChanged: (newPosition) {
+                  group.setPosition(newPosition);
+                },
+              ),
+              ...chewies.zip(group.children,
+                  (chewie, synced) => _buildVideo(chewie, synced))
+            ],
+          );
   }
 
   Widget _buildVideo(ChewieController chewie, SyncedController synced) {
