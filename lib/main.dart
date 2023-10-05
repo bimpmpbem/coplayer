@@ -249,10 +249,6 @@ class _MyHomePageState extends State<MyHomePage> {
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text("Parsing failed.")));
       }
-      setState(() {
-        _chatLoading = false;
-      });
-      return;
     }
 
     setState(() {
