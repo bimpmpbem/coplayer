@@ -18,9 +18,22 @@ class ChatMetadata {
   final int zeroTimestamp;
 }
 
-abstract class ChatData implements ChatMetadata {
+class ChatLoadMetadata extends ChatMetadata {
+  ChatLoadMetadata({
+    required super.itemCount,
+    required super.tickerCount,
+    required super.timestampRange,
+    required super.zeroTimestamp,
+    required this.loadedBytes,
+    required this.totalBytes,
+  });
 
-  /// list of tickers that are active at specified [timestamp], 
+  final int loadedBytes;
+  final int? totalBytes;
+}
+
+abstract class ChatData implements ChatMetadata {
+  /// list of tickers that are active at specified [timestamp],
   /// in chronological order.
   Future<List<ChatTickerValue>> ongoingTickersAt(int timestamp);
 
@@ -35,7 +48,7 @@ abstract class ChatData implements ChatMetadata {
   // TODO LiveChatActionPanel? actionPanelAt(int timestamp);
 
   // TODO search for text/users in items
-  
+
   // TODO Future<Image> getImage(String url);
 
   /// Discards any resources used by the object.
@@ -159,7 +172,7 @@ abstract class ChatData implements ChatMetadata {
         tickerCount++;
 
         // TODO detect minimum amount to pin message?
-        // (not all paid messages get pinned as tickers, 
+        // (not all paid messages get pinned as tickers,
         //  only when purchange amount is above a threshold set by creator)
       } else {
         logger?.d("Can't parse action: $action");

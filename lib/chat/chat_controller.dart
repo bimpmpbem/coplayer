@@ -28,11 +28,7 @@ class ChatController extends GenericPlayerController {
   static Future<ChatController?> parseFile(
     XFile file, {
     Logger? logger,
-    void Function(
-      ChatMetadata metadata,
-      int parsedBytes,
-      int totalBytes,
-    )? onProgress,
+    void Function(ChatLoadMetadata metadata)? onProgress,
     bool inMemory = false,
   }) async {
     final size = await file.length();
@@ -57,7 +53,16 @@ class ChatController extends GenericPlayerController {
           ? await MemoryChatData.fromRawJsonStream(
               jsonStream,
               onProgress: (metadata) {
-                onProgress?.invoke(metadata, parsedBytes, size);
+                onProgress?.invoke(
+                  ChatLoadMetadata(
+                    itemCount: metadata.itemCount,
+                    tickerCount: metadata.tickerCount,
+                    timestampRange: metadata.timestampRange,
+                    zeroTimestamp: metadata.zeroTimestamp,
+                    loadedBytes: parsedBytes,
+                    totalBytes: size,
+                  ),
+                );
               },
               logger: logger,
             )
@@ -66,7 +71,16 @@ class ChatController extends GenericPlayerController {
               dbPath: (await getTemporaryDirectory()).path,
               source: file.path.isNotBlank ? file.path : file.name,
               onProgress: (metadata) {
-                onProgress?.invoke(metadata, parsedBytes, size);
+                onProgress?.invoke(
+                  ChatLoadMetadata(
+                    itemCount: metadata.itemCount,
+                    tickerCount: metadata.tickerCount,
+                    timestampRange: metadata.timestampRange,
+                    zeroTimestamp: metadata.zeroTimestamp,
+                    loadedBytes: parsedBytes,
+                    totalBytes: size,
+                  ),
+                );
               },
               logger: logger,
             );

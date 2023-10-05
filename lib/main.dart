@@ -65,6 +65,8 @@ class _MyHomePageState extends State<MyHomePage> {
   int? _chatTotalBytes = 0;
   bool _chatLoading = false;
 
+  ChatLoadMetadata? _chatLoadMetadata;
+
   @override
   void initState() {
     super.initState();
@@ -202,11 +204,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     // loading
     if (_chatLoading) {
-      child = ChatLoadProgress(
-        chatLoadedBytes: _chatLoadedBytes,
-        chatTotalBytes: _chatTotalBytes,
-        chatLoadMetadata: _chatLoadMetadata,
-      );
+      child = ChatLoadProgress(metadata: _chatLoadMetadata);
     }
 
     return FileRequired(
@@ -228,23 +226,19 @@ class _MyHomePageState extends State<MyHomePage> {
 
     final size = await file.length();
     setState(() {
-      _chatTotalBytes = size;
-      _chatLoadedBytes = 0;
       _chatLoading = true;
     });
 
-    debugPrint("Load size: $_chatTotalBytes");
+    debugPrint("Load size: $size");
 
     await chatController?.dispose();
 
     chatController = await ChatController.parseFile(
       file,
       logger: logger,
-      onProgress: (metadata, parsedBytes, totalBytes) {
+      onProgress: (metadata) {
         setState(() {
           _chatLoadMetadata = metadata;
-          _chatTotalBytes = totalBytes;
-          _chatLoadedBytes = parsedBytes;
         });
       },
       inMemory: false,
@@ -263,6 +257,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     setState(() {
       _chatLoading = false;
+      _chatLoadMetadata = null;
     });
   }
 

@@ -1,30 +1,26 @@
 import 'package:filesize/filesize.dart';
 import 'package:flutter/material.dart';
 
-import '../data/chat_data.dart';
 import '../../duration_extensions.dart';
+import '../data/chat_data.dart';
 
 class ChatLoadProgress extends StatelessWidget {
   const ChatLoadProgress({
     super.key,
-    required this.chatLoadedBytes,
-    required this.chatTotalBytes,
-    required this.chatLoadMetadata,
+    required this.metadata,
   });
 
-  final int chatLoadedBytes;
-  final int? chatTotalBytes;
-  final ChatMetadata? chatLoadMetadata;
+  final ChatLoadMetadata? metadata;
 
   @override
   Widget build(BuildContext context) {
-    final chatLoadMetadata = this.chatLoadMetadata;
+    final metadata = this.metadata;
 
-    if (chatLoadMetadata == null) {
+    if (metadata == null) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final range = chatLoadMetadata.timestampRange;
+    final range = metadata.timestampRange;
 
     final duration = DateTime.fromMicrosecondsSinceEpoch(range.endInclusive)
         .difference(DateTime.fromMicrosecondsSinceEpoch(range.start));
@@ -35,17 +31,19 @@ class ChatLoadProgress extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text("${filesize(chatLoadedBytes)} / ${filesize(chatTotalBytes)}"),
+            Text(
+                "${filesize(metadata.loadedBytes)} / ${filesize(metadata.totalBytes)}"),
             const SizedBox(height: 8),
             LinearProgressIndicator(
-              value: (chatTotalBytes != null && chatTotalBytes! > 0)
-                  ? chatLoadedBytes / chatTotalBytes!
+              value: (metadata.totalBytes != null &&
+                      metadata.totalBytes! > 0)
+                  ? metadata.loadedBytes / metadata.totalBytes!
                   : null,
             ),
             const SizedBox(height: 16),
             Text(duration.toStringCompact()),
-            Text("${chatLoadMetadata.itemCount} items"),
-            Text("${chatLoadMetadata.tickerCount} tickers"),
+            Text("${metadata.itemCount} items"),
+            Text("${metadata.tickerCount} tickers"),
           ],
         ),
       ),
