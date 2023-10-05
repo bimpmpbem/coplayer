@@ -33,9 +33,9 @@ dependencies:
 
   mutex: ^3.0.1
   dartx: ^1.2.0
-  logger: ^2.0.2
+  logger: ^2.0.2+1
   collection: ^1.17.2
-  equatable: ^2.0.0
+  equatable: ^2.0.5
 
   # scrollable_positioned_list: ^0.3.8
   # infinite_listview: ^1.1.0
@@ -66,7 +66,7 @@ dependencies:
   # extended_image: ^8.1.1 # for less memory leaks/better caching?
   transparent_image: ^2.0.1
   flutter_cache_manager: ^3.3.1
-  cached_network_image: ^3.2.3 # uses flutter_cache_manager
+  cached_network_image: ^3.3.0 # uses flutter_cache_manager
 
   # image generation from widgets
   # screenshot: ^2.1.0
@@ -85,14 +85,14 @@ dependencies:
   shimmer: ^3.0.0
 
   # local/network video
-  video_player: ^2.7.1 # android, iOS, web
+  video_player: ^2.7.2 # android, iOS, web
   # video_player_win: ^2.2.2 # windows, potentially unstable
-  fvp: ^0.4.0 # for video_player, alternative implementation for all platforms
+  fvp: ^0.8.0 # for video_player, alternative implementation for all platforms
 
   # media_kit: ^1.1.7 # video_player alternative supports everything, less well known
 
   # video UI
-  chewie: ^1.7.0
+  chewie: ^1.7.1
   # video_player_control_panel: ^1.1.0 # windows
 
   # youtube
@@ -103,7 +103,7 @@ dependencies:
   cross_file: ^0.3.3+5 # XFile
   # file_selector: ^1.0.1 # uses XFile, causes out-of-memory errors
   file_picker: ^5.5.0 # uses PlatformFile
-  desktop_drop: ^0.4.3 # uses XFile
+  desktop_drop: ^0.4.4 # uses XFile
 
   path_provider: ^2.1.1
   path: ^1.8.3
@@ -119,7 +119,7 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^2.0.3
 
-  build_runner: ^2.0.0
+  build_runner: ^2.4.6
   isar_generator: ^3.1.0+1
   # objectbox_generator: any
   # drift_dev: ^2.12.1
