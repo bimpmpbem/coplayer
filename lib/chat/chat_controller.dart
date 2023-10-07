@@ -15,7 +15,8 @@ import 'data/chat_data.dart';
 import 'data/chat_item_values.dart';
 import 'data/chat_ticker_value.dart';
 import 'data/memory_chat_data.dart';
-import 'data/stored_chat_data.dart';
+import 'data/stored_chat_data_stub.dart'
+    if (dart.library.io) 'data/stored_chat_data.dart';
 
 /// A controller for a chat player.
 class ChatController extends GenericPlayerController {
