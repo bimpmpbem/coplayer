@@ -35,15 +35,15 @@ class ChatLoadProgress extends StatelessWidget {
                 "${filesize(metadata.loadedBytes)} / ${filesize(metadata.totalBytes)}"),
             const SizedBox(height: 8),
             LinearProgressIndicator(
-              value: (metadata.totalBytes != null &&
-                      metadata.totalBytes! > 0)
+              value: (metadata.totalBytes != null && metadata.totalBytes! > 0)
                   ? metadata.loadedBytes / metadata.totalBytes!
                   : null,
             ),
             const SizedBox(height: 16),
             Text(duration.toStringCompact()),
-            Text("${metadata.itemCount} items"),
-            Text("${metadata.tickerCount} tickers"),
+            if (metadata.itemCount > 0) Text("${metadata.itemCount} items"),
+            if (metadata.tickerCount > 0)
+              Text("${metadata.tickerCount} tickers"),
           ],
         ),
       ),
