@@ -20,21 +20,48 @@ import 'data/stored_chat_data.dart';
 /// A controller for a chat player.
 class ChatController extends GenericPlayerController {
   ChatController({
-    required this.chatData,
+    required this.source,
+    this.logger,
     this.cachedItemCount = 100,
     this.updateFrequency = const Duration(milliseconds: 200),
-  });
+    this.inMemory = false,
+  }) : super();
 
-  static Future<ChatController?> parseFile(
-    XFile file, {
-    Logger? logger,
-    void Function(ChatLoadMetadata metadata)? onProgress,
-    bool inMemory = false,
-  }) async {
-    final size = await file.length();
+  final Logger? logger;
+
+  ChatMetadata? chatData;
+
+  final XFile source;
+  final Duration updateFrequency;
+
+  final int cachedItemCount;
+
+  bool inMemory;
+
+  // TODO add ignoreBuffering to control if should pause when buffering?
+
+  Timer? _timer;
+  bool _initializing = false;
+  bool _disposed = false;
+
+  @override
+  Future<Duration?> get position async => value.estimatedPosition;
+
+  /// timestamp matching the current [value.estimatedPosition]
+  int get currentEstimatedTimestamp =>
+      (chatData?.zeroTimestamp ?? 0) + value.estimatedPosition.inMicroseconds;
+
+  @override
+  Future<void> initialize() async {
+    if (value.playState.value != PlayState.uninitialized ||
+        _disposed ||
+        _initializing) return;
+
+    _initializing = true;
+
+    final size = await source.length();
     int parsedBytes = 0;
-
-    final jsonStream = file
+    final jsonStream = source
         .openRead()
         .transform(StreamTransformer<Uint8List, List<int>>.fromHandlers(
           handleData: (Uint8List value, EventSink<List<int>> sink) {
@@ -47,95 +74,89 @@ class ChatController extends GenericPlayerController {
         .transform(const LineSplitter())
         .map((line) => jsonDecode(line) as Map<String, dynamic>);
 
-    ChatData? chatData;
+    GenericPlayerState valueWithPositionFrom(
+      GenericPlayerState value,
+      ChatMetadata metadata,
+    ) {
+      final timestampRange = metadata.timestampRange;
+      final zeroTimestamp = metadata.zeroTimestamp;
+      final actualRange = DurationRange(
+        Duration(microseconds: timestampRange.start - zeroTimestamp),
+        Duration(microseconds: timestampRange.endInclusive - zeroTimestamp),
+      );
+      return value.copyWith(
+        positionRange: actualRange,
+        position: Duration.zero.clampToRange(actualRange),
+      );
+    }
+
+    void updateLoadState(ChatMetadata metadata) {
+      if (_disposed) return;
+      chatData = ChatLoadMetadata(
+        itemCount: metadata.itemCount,
+        tickerCount: metadata.tickerCount,
+        timestampRange: metadata.timestampRange,
+        zeroTimestamp: metadata.zeroTimestamp,
+        loadedBytes: parsedBytes,
+        totalBytes: size,
+      );
+      final newValue = valueWithPositionFrom(value, metadata);
+      value = newValue;
+      notifyListeners(); // might not be needed
+    }
+
+    ChatData? newChatData;
     try {
-      chatData = (inMemory || kIsWeb) // database doesn't support web
+      newChatData = (inMemory || kIsWeb) // database doesn't support web
           ? await MemoryChatData.fromRawJsonStream(
               jsonStream,
-              onProgress: (metadata) {
-                onProgress?.invoke(
-                  ChatLoadMetadata(
-                    itemCount: metadata.itemCount,
-                    tickerCount: metadata.tickerCount,
-                    timestampRange: metadata.timestampRange,
-                    zeroTimestamp: metadata.zeroTimestamp,
-                    loadedBytes: parsedBytes,
-                    totalBytes: size,
-                  ),
-                );
-              },
+              onProgress: updateLoadState,
               logger: logger,
             )
-          : chatData = await StoredChatData.fromRawJsonStream(
+          : await StoredChatData.fromRawJsonStream(
               jsonStream: jsonStream,
               dbPath: (await getTemporaryDirectory()).path,
-              source: file.path.isNotBlank ? file.path : file.name,
-              onProgress: (metadata) {
-                onProgress?.invoke(
-                  ChatLoadMetadata(
-                    itemCount: metadata.itemCount,
-                    tickerCount: metadata.tickerCount,
-                    timestampRange: metadata.timestampRange,
-                    zeroTimestamp: metadata.zeroTimestamp,
-                    loadedBytes: parsedBytes,
-                    totalBytes: size,
-                  ),
-                );
-              },
+              source: source.path.isNotBlank ? source.path : source.name,
+              onProgress: updateLoadState,
               logger: logger,
             );
     } on FormatException catch (_) {
       // bad file
     }
 
-    if (chatData == null) return null;
+    if (_disposed) return; // controller might be disposed of while parsing file
 
-    return ChatController(chatData: chatData);
-  }
+    if (newChatData == null) {
+      value = value.copyWith(errorDescription: "Initialization failed.");
+      return;
+    }
 
-  final ChatData chatData;
-  final Duration updateFrequency;
-
-  final int cachedItemCount;
-
-  // TODO add ignoreBuffering to control if should pause when buffering?
-
-  Timer? _timer;
-
-  @override
-  Future<Duration?> get position async => value.estimatedPosition;
-
-  /// timestamp matching the current [value.estimatedPosition]
-  int get currentEstimatedTimestamp =>
-      chatData.zeroTimestamp + value.estimatedPosition.inMicroseconds;
-
-  @override
-  Future<void> initialize() async {
-    if (value.playState.value != PlayState.uninitialized) return;
-
-    final rawRange = chatData.timestampRange;
-    final zeroTimestamp = chatData.zeroTimestamp;
-    value = value.copyWith(
+    chatData = newChatData;
+    value = valueWithPositionFrom(value, newChatData).copyWith(
       playState: PlayState.paused,
-      positionRange: DurationRange(
-        Duration(microseconds: chatData.timestampRange.start - zeroTimestamp),
-        Duration(microseconds: rawRange.endInclusive - zeroTimestamp),
-      ),
-      position: Duration.zero,
     );
+    _initializing = false;
   }
 
   @override
   Future<void> dispose() async {
+    if (_disposed) return;
+
+    _disposed = true;
+
     _timer?.cancel();
     _timer = null;
-    await chatData.dispose();
+
+    final chatData = this.chatData;
+    if (chatData is ChatData) await chatData.dispose();
+    this.chatData = null;
+
     return super.dispose();
   }
 
   @override
   Future<void> play() async {
-    if (value.playState.value != PlayState.paused) return;
+    if (value.playState.value != PlayState.paused || _disposed) return;
 
     value = value.copyWith(
       playState: PlayState.playing,
@@ -160,6 +181,8 @@ class ChatController extends GenericPlayerController {
 
   @override
   Future<void> pause() async {
+    if (_disposed) return;
+
     _timer?.cancel();
     _timer = null;
 
@@ -181,6 +204,9 @@ class ChatController extends GenericPlayerController {
     int limit = 100,
     int offset = 0,
   }) {
+    final chatData = this.chatData;
+    if (chatData is! ChatData) return Future.value(const []);
+
     return chatData.lastItemsAt(
       currentEstimatedTimestamp,
       limit: limit,
@@ -190,6 +216,9 @@ class ChatController extends GenericPlayerController {
 
   /// currently ongoing tickers.
   Future<List<ChatTickerValue>> getOngoingTickers() {
+    final chatData = this.chatData;
+    if (chatData is! ChatData) return Future.value(const []);
+
     final timestamp = currentEstimatedTimestamp;
 
     return chatData.ongoingTickersAt(timestamp);
@@ -197,6 +226,8 @@ class ChatController extends GenericPlayerController {
 
   @override
   Future<void> setPosition(Duration position) async {
+    if (_disposed) return;
+
     value = value.copyWith(
       position: position.clampToRange(value.positionRange.value),
     );
@@ -204,6 +235,8 @@ class ChatController extends GenericPlayerController {
 
   @override
   Future<void> setPlaybackSpeed(double speed) async {
+    if (_disposed) return;
+
     value = value.copyWith(
       playbackSpeed: speed,
       position: value.estimatedPosition,

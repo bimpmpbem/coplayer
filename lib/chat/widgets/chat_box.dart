@@ -7,9 +7,11 @@ import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import '../../duration_extensions.dart';
 import '../../generic_player_state.dart';
 import '../chat_controller.dart';
+import '../data/chat_data.dart';
 import '../data/chat_item_values.dart';
 import '../data/chat_ticker_value.dart';
 import '../youtube_theme.dart';
+import 'chat_load_progress.dart';
 import 'chat_ticker.dart';
 import 'items/chat_item.dart';
 
@@ -34,7 +36,15 @@ class _ChatBoxState extends State<ChatBox> {
 
   double? _draggingProgressValue;
 
-  void _updateItems() {
+  bool _initializing = false;
+
+  void _chatUpdated() {
+    // when loading, no need for tickers and items. just refresh.
+    if (widget.controller.chatData is ChatLoadMetadata) {
+      setState(() {});
+      return;
+    }
+
     widget.controller
         .getLastItems(limit: _pageSize, offset: 0)
         .then((newLastItems) {
@@ -56,8 +66,8 @@ class _ChatBoxState extends State<ChatBox> {
   @override
   void initState() {
     super.initState();
-    widget.controller.initialize().then((_) => setState);
-    widget.controller.addListener(_updateItems);
+
+    widget.controller.addListener(_chatUpdated);
     _pagingController.addPageRequestListener((offset) async {
       final items = (offset == 0)
           ? lastItems
@@ -80,34 +90,81 @@ class _ChatBoxState extends State<ChatBox> {
         _scrollController.jumpTo(0);
       }
     });
-    _updateItems();
+    _chatUpdated();
+  }
+
+  @override
+  void didUpdateWidget(ChatBox oldWidget) {
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_chatUpdated);
+      widget.controller.addListener(_chatUpdated);
+      _initializing = false;
+    }
+    super.didUpdateWidget(oldWidget);
   }
 
   @override
   void dispose() {
     super.dispose();
-    widget.controller.removeListener(_updateItems);
+    widget.controller.removeListener(_chatUpdated);
   }
 
   @override
   Widget build(BuildContext context) {
-    return ScrollConfiguration(
-      behavior: ScrollConfiguration.of(context).copyWith(
-        scrollbars: false,
-        // allow dragging on desktop, etc.
-        dragDevices: PointerDeviceKind.values.toSet(),
-      ),
-      child: Column(
-        children: [
-          _buildTickers(),
-          Expanded(child: _buildItems(context)),
-          _buildPanel(),
-        ],
+    return switch (widget.controller.chatData) {
+      ChatLoadMetadata metadata => ChatLoadProgress(metadata: metadata),
+      ChatData _ => ScrollConfiguration(
+          behavior: ScrollConfiguration.of(context).copyWith(
+            scrollbars: false,
+            // allow dragging on desktop, etc.
+            dragDevices: PointerDeviceKind.values.toSet(),
+          ),
+          child: Column(
+            children: [
+              _buildTickers(),
+              Expanded(child: _buildItems(context)),
+              _buildPanel(),
+            ],
+          ),
+        ),
+      null => _buildUninitialized(),
+      _ => const Placeholder(),
+    };
+  }
+
+  Widget _buildUninitialized() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              widget.controller.source.name,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _initializing
+                  ? null
+                  : () async {
+                      setState(() {
+                        _initializing = true;
+                      });
+                      await widget.controller.initialize();
+                      setState(() {
+                        _initializing = false;
+                      });
+                    },
+              child: const Text("Load"),
+            )
+          ],
+        ),
       ),
     );
   }
 
-  Stack _buildItems(BuildContext context) {
+  Widget _buildItems(BuildContext context) {
     return Stack(
       alignment: Alignment.centerRight,
       fit: StackFit.expand,
@@ -206,7 +263,7 @@ class _ChatBoxState extends State<ChatBox> {
     );
   }
 
-  SizedBox _buildProgressBar(BuildContext context) {
+  Widget _buildProgressBar(BuildContext context) {
     return SizedBox(
       width: 35,
       child: FlutterSlider(
@@ -269,12 +326,23 @@ class _ChatBoxState extends State<ChatBox> {
         border: Border.all(color: Colors.black.withOpacity(0.6), width: 1),
       ),
       child: Padding(
-        padding: const EdgeInsets.only(left: 24, right: 16),
+        padding: const EdgeInsets.only(left: 8, right: 8),
         child: Row(
           children: [
-            const Icon(
-              Icons.lock_outline,
-              color: YoutubeTheme.secondaryTextColor,
+            IconButton(
+              onPressed: () {
+                if (widget.controller.value.playState.value ==
+                    PlayState.paused) {
+                  widget.controller.play();
+                } else {
+                  widget.controller.pause();
+                }
+              },
+              icon: Icon(
+                widget.controller.value.playState.value == PlayState.paused
+                    ? Icons.play_arrow
+                    : Icons.pause,
+              ),
             ),
             IconButton(
               icon: const Icon(
@@ -310,21 +378,6 @@ class _ChatBoxState extends State<ChatBox> {
               ),
             ),
             const SizedBox(width: 16),
-            IconButton(
-              onPressed: () {
-                if (widget.controller.value.playState.value ==
-                    PlayState.paused) {
-                  widget.controller.play();
-                } else {
-                  widget.controller.pause();
-                }
-              },
-              icon: Icon(
-                widget.controller.value.playState.value == PlayState.paused
-                    ? Icons.play_arrow
-                    : Icons.pause,
-              ),
-            ),
           ],
         ),
       ),

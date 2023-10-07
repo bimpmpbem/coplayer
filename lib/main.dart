@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:chewie/chewie.dart';
-import 'package:cross_file/cross_file.dart';
 import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:fvp/fvp.dart';
@@ -9,9 +8,7 @@ import 'package:logger/logger.dart';
 import 'package:video_player/video_player.dart';
 
 import 'chat/chat_controller.dart';
-import 'chat/data/chat_data.dart';
 import 'chat/widgets/chat_box.dart';
-import 'chat/widgets/chat_load_progress.dart';
 import 'file_required.dart';
 import 'generic_player_controls.dart';
 import 'synced_player_group_controller.dart';
@@ -60,12 +57,6 @@ class _MyHomePageState extends State<MyHomePage> {
     output: loggerOutput,
   );
 
-  ChatMetadata? _chatLoadMetadata;
-  int _chatLoadedBytes = 0;
-  int? _chatTotalBytes = 0;
-  bool _chatLoading = false;
-
-  ChatLoadMetadata? _chatLoadMetadata;
 
   @override
   void initState() {
@@ -193,68 +184,23 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildChat() {
-    final chatController = this.chatController;
-
-    Widget? child;
-
-    // loaded
-    if (chatController != null) {
-      child = ChatBox(controller: chatController);
-    }
-
-    // loading
-    if (_chatLoading) {
-      child = ChatLoadProgress(metadata: _chatLoadMetadata);
-    }
-
     return FileRequired(
       icon: Icons.chat,
       text: "Pick chat replay file (.json)",
-      onFileChosen: _loadChat,
-      child: child,
-    );
-  }
-
-  void _loadChat(XFile file) async {
-    if (_chatLoading) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text("Already loading...")));
-      }
-      return;
-    }
-
-    final size = await file.length();
-    setState(() {
-      _chatLoading = true;
-    });
-
-    debugPrint("Load size: $size");
-
-    await chatController?.dispose();
-
-    chatController = await ChatController.parseFile(
-      file,
-      logger: logger,
-      onProgress: (metadata) {
+      onFileChosen: (file) {
+        chatController?.dispose();
         setState(() {
-          _chatLoadMetadata = metadata;
+          chatController = ChatController(
+            source: file,
+            logger: logger,
+            inMemory: false,
+          );
         });
       },
-      inMemory: false,
+      child: (chatController != null)
+          ? ChatBox(controller: chatController!)
+          : null,
     );
-
-    if (chatController == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text("Parsing failed.")));
-      }
-    }
-
-    setState(() {
-      _chatLoading = false;
-      _chatLoadMetadata = null;
-    });
   }
 
   Widget _buildVideos() {
